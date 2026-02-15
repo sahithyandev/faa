@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
@@ -385,4 +386,4 @@ func TestRoundTripCompleteFlow(t *testing.T) {
 }
 
 // ErrNotFound is a sample error for testing
-var ErrNotFound = fmt.Errorf("not found")
+var ErrNotFound = errors.New("not found")
