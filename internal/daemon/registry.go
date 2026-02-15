@@ -109,7 +109,8 @@ func (r *Registry) saveRoutes(routes map[string]int) error {
 	}
 
 	if err := os.Rename(tempPath, r.routesPath()); err != nil {
-		os.Remove(tempPath) // Clean up temp file on error
+		// Best-effort cleanup of temp file; ignore cleanup errors as we're already in error state
+		_ = os.Remove(tempPath)
 		return fmt.Errorf("failed to rename routes file: %w", err)
 	}
 
@@ -155,7 +156,8 @@ func (r *Registry) saveProcesses(processes map[string]*Process) error {
 	}
 
 	if err := os.Rename(tempPath, r.processesPath()); err != nil {
-		os.Remove(tempPath) // Clean up temp file on error
+		// Best-effort cleanup of temp file; ignore cleanup errors as we're already in error state
+		_ = os.Remove(tempPath)
 		return fmt.Errorf("failed to rename processes file: %w", err)
 	}
 
