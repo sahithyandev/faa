@@ -5,14 +5,14 @@ A CLI tool for managing local development environments.
 ## Installation
 
 ```bash
-make build
+just build
 # Binary will be available at bin/faa
 ```
 
 Or install directly:
 
 ```bash
-make install
+just install
 ```
 
 ## Usage
@@ -70,17 +70,17 @@ faa routes [options]
 ### Build
 
 ```bash
-make build
+just build
 ```
 
 ### Test
 
 ```bash
-make test
+just test
 ```
 
 ### Clean
 
 ```bash
-make clean
+just clean
 ```
