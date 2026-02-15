@@ -62,11 +62,6 @@ func StablePort(name string) (int, error) {
 		}
 		
 		attempts++
-		
-		// If we've wrapped around to initial port, we've tried all
-		if port == initialPort && attempts > 0 {
-			break
-		}
 	}
 	
 	return 0, fmt.Errorf("no free port found in range %d-%d", minPort, maxPort)
