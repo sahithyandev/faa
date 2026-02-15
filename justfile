@@ -1,3 +1,7 @@
+# List all available commands (default)
+default:
+    @just --list
+
 # Build the faa CLI binary
 build:
     go build -o bin/faa ./cmd/localhost-dev
