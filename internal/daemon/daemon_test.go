@@ -6,9 +6,20 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
+
+// containsAny checks if s contains any of the substrings
+func containsAny(s string, substrs []string) bool {
+	for _, substr := range substrs {
+		if strings.Contains(s, substr) {
+			return true
+		}
+	}
+	return false
+}
 
 func TestSocketPath(t *testing.T) {
 	sockPath, err := SocketPath()
@@ -101,9 +112,9 @@ func TestDaemonSingleInstance(t *testing.T) {
 		// Check that error message indicates lock conflict
 		if err != nil {
 			errMsg := err.Error()
-			if errMsg != "" && errMsg != "another daemon instance is already running: failed to acquire lock: resource temporarily unavailable" {
-				// Different systems might return different error messages
-				t.Logf("Got lock error: %v", err)
+			// Check for key phrases that indicate a lock conflict
+			if !containsAny(errMsg, []string{"already running", "failed to acquire lock"}) {
+				t.Errorf("Expected error about daemon already running, got: %v", err)
 			}
 		}
 	case <-time.After(2 * time.Second):

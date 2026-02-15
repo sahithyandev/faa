@@ -349,9 +349,19 @@ func (d *Daemon) handleStatus(req *Request) *Response {
 
 // handleStop handles stop requests
 func (d *Daemon) handleStop(req *Request) *Response {
-	// TODO: Handle clearRoutes option if needed
-	// For now, just acknowledge the stop request
-	// The actual shutdown will happen after the response is sent
+	var data StopData
+	if req.Data != nil {
+		if err := json.Unmarshal(req.Data, &data); err != nil {
+			return NewErrorResponse(fmt.Errorf("invalid request data: %w", err))
+		}
+	}
+
+	// Note: clearRoutes option is available but not implemented yet as it requires
+	// coordination with Caddy, which is not part of this initial implementation.
+	// For now, routes are only cleared when explicitly requested via clear_process
+	// or when the user manually deletes the routes.json file.
+	
+	// Trigger graceful shutdown after sending response
 	go func() {
 		time.Sleep(100 * time.Millisecond)
 		d.Shutdown()
