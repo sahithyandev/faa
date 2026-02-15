@@ -56,6 +56,8 @@ func run(args []string) int {
 	}
 }
 
+// printError prints a formatted error message to stderr
+// This provides consistent error formatting across all commands
 func printError(format string, args ...interface{}) {
 	fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
 }
