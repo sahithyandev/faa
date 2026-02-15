@@ -5,66 +5,163 @@ import (
 	"os"
 )
 
+const (
+	ExitSuccess = 0
+	ExitError   = 1
+)
+
 func main() {
-	if len(os.Args) < 2 {
+	os.Exit(run(os.Args[1:]))
+}
+
+func run(args []string) int {
+	// Check for help flags first
+	if len(args) == 0 {
 		printUsage()
-		os.Exit(1)
+		return ExitSuccess
 	}
 
-	subcommand := os.Args[1]
+	// Check for global help flags
+	if args[0] == "-h" || args[0] == "--help" {
+		printUsage()
+		return ExitSuccess
+	}
 
+	subcommand := args[0]
+	subArgs := args[1:]
+
+	// Check for help flag in subcommand args
+	if len(subArgs) > 0 && (subArgs[0] == "-h" || subArgs[0] == "--help") {
+		printSubcommandHelp(subcommand)
+		return ExitSuccess
+	}
+
+	// Handle known subcommands
 	switch subcommand {
 	case "setup":
-		handleSetup()
+		return handleSetup(subArgs)
 	case "daemon":
-		handleDaemon()
+		return handleDaemon(subArgs)
 	case "run":
-		handleRun()
+		return handleRun(subArgs)
 	case "status":
-		handleStatus()
+		return handleStatus(subArgs)
 	case "stop":
-		handleStop()
+		return handleStop(subArgs)
 	case "routes":
-		handleRoutes()
+		return handleRoutes(subArgs)
 	default:
-		fmt.Fprintf(os.Stderr, "Unknown subcommand: %s\n", subcommand)
-		printUsage()
-		os.Exit(1)
+		// Implicit run: faa <cmd> [args...] becomes run -- <cmd> [args...]
+		return handleRun(args)
 	}
+}
+
+func printError(format string, args ...interface{}) {
+	fmt.Fprintf(os.Stderr, "Error: "+format+"\n", args...)
 }
 
 func printUsage() {
-	fmt.Println("Usage: faa <subcommand> [options]")
+	fmt.Println("Usage: faa [options] <command> [args...]")
 	fmt.Println()
-	fmt.Println("Subcommands:")
-	fmt.Println("  setup   - Setup the development environment")
-	fmt.Println("  daemon  - Start the daemon process")
-	fmt.Println("  run     - Run a project")
-	fmt.Println("  status  - Show status of running projects")
-	fmt.Println("  stop    - Stop a running project")
-	fmt.Println("  routes  - Display route information")
+	fmt.Println("Options:")
+	fmt.Println("  -h, --help    Show this help message")
+	fmt.Println()
+	fmt.Println("Commands:")
+	fmt.Println("  setup         Setup the development environment")
+	fmt.Println("  daemon        Start the daemon process")
+	fmt.Println("  run           Run a command or project (default)")
+	fmt.Println("  status        Show status of running projects")
+	fmt.Println("  stop          Stop a running project")
+	fmt.Println("  routes        Display route information")
+	fmt.Println()
+	fmt.Println("If <command> is not a recognized subcommand, it is treated as:")
+	fmt.Println("  faa run -- <command> [args...]")
+	fmt.Println()
+	fmt.Println("Use 'faa <command> -h' for more information about a command.")
 }
 
-func handleSetup() {
-	fmt.Println("Setup subcommand executed")
+func printSubcommandHelp(subcommand string) {
+	switch subcommand {
+	case "setup":
+		fmt.Println("Usage: faa setup [options]")
+		fmt.Println()
+		fmt.Println("Setup the development environment.")
+		fmt.Println()
+		fmt.Println("Options:")
+		fmt.Println("  -h, --help    Show this help message")
+	case "daemon":
+		fmt.Println("Usage: faa daemon [options]")
+		fmt.Println()
+		fmt.Println("Start the daemon process.")
+		fmt.Println()
+		fmt.Println("Options:")
+		fmt.Println("  -h, --help    Show this help message")
+	case "run":
+		fmt.Println("Usage: faa run [options] [-- <command> [args...]]")
+		fmt.Println()
+		fmt.Println("Run a command or project.")
+		fmt.Println()
+		fmt.Println("Options:")
+		fmt.Println("  -h, --help    Show this help message")
+	case "status":
+		fmt.Println("Usage: faa status [options]")
+		fmt.Println()
+		fmt.Println("Show status of running projects.")
+		fmt.Println()
+		fmt.Println("Options:")
+		fmt.Println("  -h, --help    Show this help message")
+	case "stop":
+		fmt.Println("Usage: faa stop [options] [project]")
+		fmt.Println()
+		fmt.Println("Stop a running project.")
+		fmt.Println()
+		fmt.Println("Options:")
+		fmt.Println("  -h, --help    Show this help message")
+	case "routes":
+		fmt.Println("Usage: faa routes [options]")
+		fmt.Println()
+		fmt.Println("Display route information.")
+		fmt.Println()
+		fmt.Println("Options:")
+		fmt.Println("  -h, --help    Show this help message")
+	default:
+		// For implicit run commands, show run help
+		printSubcommandHelp("run")
+	}
 }
 
-func handleDaemon() {
-	fmt.Println("Daemon subcommand executed")
+func handleSetup(args []string) int {
+	fmt.Println("Setup command with args:", args)
+	// TODO: Dispatch to internal/setup package
+	return ExitSuccess
 }
 
-func handleRun() {
-	fmt.Println("Run subcommand executed")
+func handleDaemon(args []string) int {
+	fmt.Println("Daemon command with args:", args)
+	// TODO: Dispatch to internal/daemon package
+	return ExitSuccess
 }
 
-func handleStatus() {
-	fmt.Println("Status subcommand executed")
+func handleRun(args []string) int {
+	fmt.Println("Run command with args:", args)
+	// TODO: Dispatch to internal package
+	return ExitSuccess
 }
 
-func handleStop() {
-	fmt.Println("Stop subcommand executed")
+func handleStatus(args []string) int {
+	fmt.Println("Status command with args:", args)
+	// TODO: Dispatch to internal package
+	return ExitSuccess
 }
 
-func handleRoutes() {
-	fmt.Println("Routes subcommand executed")
+func handleStop(args []string) int {
+	fmt.Println("Stop command with args:", args)
+	// TODO: Dispatch to internal package
+	return ExitSuccess
+}
+
+func handleRoutes(args []string) int {
+	fmt.Println("Routes command with args:", args)
+	// TODO: Dispatch to internal package
+	return ExitSuccess
 }
