@@ -1,6 +1,6 @@
 # Build the faa CLI binary
 build:
-    go build -o bin/faa ./cmd/localhost-dev
+    go build -o bin/faa ./cmd/faa
 
 # Run tests
 test:
@@ -12,7 +12,7 @@ clean:
 
 # Install the binary to GOPATH/bin
 install:
-    go install ./cmd/localhost-dev
+    go install ./cmd/faa
 
 # Run all checks (test and build)
 all: test build
