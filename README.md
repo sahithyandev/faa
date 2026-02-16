@@ -395,6 +395,36 @@ Common causes:
 - Dev server not listening on PORT: make sure your server uses `process.env.PORT`
 - Dev server listening on wrong interface: ensure it binds to `0.0.0.0` (all interfaces) or `127.0.0.1`/`localhost` (loopback only), not a specific external IP
 
+### .local domain not resolving
+
+Error: `ping https://my-project.local` or `curl https://my-project.local` fails with "cannot resolve" or "unknown host".
+
+Solution:
+
+The `.local` domains used by faa are handled by Caddy's reverse proxy on port 443, not via DNS or mDNS. They work by:
+1. Your browser connects to `https://my-project.local` (port 443)
+2. Caddy intercepts the request and routes it to your dev server
+3. The domain doesn't need to exist in DNS or `/etc/hosts`
+
+Important notes:
+- **Use in a browser**: Open `https://my-project.local` directly in your web browser
+- **Don't use ping**: The `ping` command doesn't understand HTTPS URLs and won't work with .local domains
+- **Use curl with -k**: If using curl for testing, use `curl -k https://my-project.local` (the `-k` flag accepts the self-signed certificate, or trust the CA certificate first)
+- **Daemon must be running**: Run `faa status` to verify the daemon is active and routes are configured
+- **CA must be trusted**: Run `faa setup` to install the CA certificate so browsers trust the HTTPS connection
+
+### OCSP stapling warnings in logs
+
+Warning: `WARN tls stapling OCSP {"identifiers": ["my-project.local"]}` appears in daemon logs.
+
+This warning is harmless and can be safely ignored. It appears because:
+- Caddy attempts OCSP stapling for all certificates
+- Internal CA certificates don't have OCSP responders
+- The OCSP check is skipped automatically with no impact on functionality
+- Your HTTPS connections work normally despite this warning
+
+No action needed - this is expected behavior for local development with internal CAs.
+
 ## Safety and Security Notes
 
 - The faa daemon requires permission to bind to ports 80 and 443 (privileged ports on Unix systems)
