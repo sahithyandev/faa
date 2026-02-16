@@ -268,7 +268,13 @@ func TestEnsureDaemonRunning(t *testing.T) {
 	}()
 
 	// Wait for daemon to start
-	time.Sleep(100 * time.Millisecond)
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if isDaemonRunning() {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 
 	// Test that ensureDaemonRunning returns nil when daemon is already running
 	if err := ensureDaemonRunning(); err != nil {
@@ -314,8 +320,14 @@ func TestIsDaemonRunning(t *testing.T) {
 		errChan <- d.Start()
 	}()
 
-	// Wait for daemon to start
-	time.Sleep(100 * time.Millisecond)
+	// Wait for daemon to start with polling
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if isDaemonRunning() {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
 
 	// Now daemon should be running
 	if !isDaemonRunning() {
@@ -333,10 +345,17 @@ func TestIsDaemonRunning(t *testing.T) {
 		t.Fatal("Daemon didn't shutdown in time")
 	}
 
-	// After shutdown, daemon should not be running
-	time.Sleep(100 * time.Millisecond)
-	if isDaemonRunning() {
+	// After shutdown, daemon should not be running - wait with polling
+	deadline = time.Now().Add(2 * time.Second)
+	daemonStopped := false
+	for time.Now().Before(deadline) {
+		if !isDaemonRunning() {
+			daemonStopped = true
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !daemonStopped {
 		t.Error("isDaemonRunning() should return false after daemon is shutdown")
 	}
 }
-

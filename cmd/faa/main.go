@@ -246,17 +246,29 @@ func startDaemonInBackground() error {
 	// Start daemon as a detached background process
 	cmd := exec.Command(execPath, "daemon")
 
-	// Detach from parent process
-	cmd.Stdout = nil
-	cmd.Stderr = nil
+	// Redirect output to /dev/null to suppress daemon output
+	// Users can check daemon status with 'faa status' or manually run 'faa daemon' to see output
+	devNull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+	if err != nil {
+		return fmt.Errorf("failed to open /dev/null: %w", err)
+	}
+	cmd.Stdout = devNull
+	cmd.Stderr = devNull
 	cmd.Stdin = nil
 
 	if err := cmd.Start(); err != nil {
+		devNull.Close()
 		return fmt.Errorf("failed to start daemon: %w", err)
 	}
 
-	// Don't wait for the daemon to exit
-	go cmd.Wait()
+	// Wait for the daemon process in a goroutine and log any errors
+	go func() {
+		defer devNull.Close()
+		if err := cmd.Wait(); err != nil {
+			// Log to stderr so users can see if daemon exits unexpectedly
+			fmt.Fprintf(os.Stderr, "Warning: daemon process exited: %v\n", err)
+		}
+	}()
 
 	return nil
 }
