@@ -274,6 +274,8 @@ func (d *Daemon) handleRequest(req *Request) *Response {
 		return d.handleListRoutes(req)
 	case MessageTypeSetProcess:
 		return d.handleSetProcess(req)
+	case MessageTypeGetProcess:
+		return d.handleGetProcess(req)
 	case MessageTypeClearProcess:
 		return d.handleClearProcess(req)
 	case MessageTypeStatus:
@@ -347,6 +349,22 @@ func (d *Daemon) handleSetProcess(req *Request) *Response {
 	}
 
 	resp, _ := NewSuccessResponse(nil)
+	return resp
+}
+
+// handleGetProcess handles get_process requests
+func (d *Daemon) handleGetProcess(req *Request) *Response {
+	var data GetProcessData
+	if err := json.Unmarshal(req.Data, &data); err != nil {
+		return NewErrorResponse(fmt.Errorf("invalid request data: %w", err))
+	}
+
+	proc, err := d.registry.GetProcess(data.ProjectRoot)
+	if err != nil {
+		return NewErrorResponse(err)
+	}
+
+	resp, _ := NewSuccessResponse(proc)
 	return resp
 }
 

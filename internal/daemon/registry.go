@@ -222,6 +222,21 @@ func (r *Registry) ClearProcess(projectRoot string) error {
 	return r.saveProcesses(processes)
 }
 
+// GetProcess returns a process entry by project root
+func (r *Registry) GetProcess(projectRoot string) (*Process, error) {
+	processes, err := r.loadProcesses()
+	if err != nil {
+		return nil, err
+	}
+
+	proc, ok := processes[projectRoot]
+	if !ok {
+		return nil, nil
+	}
+
+	return proc, nil
+}
+
 // ListProcesses returns all processes as a slice
 func (r *Registry) ListProcesses() ([]*Process, error) {
 	processes, err := r.loadProcesses()
