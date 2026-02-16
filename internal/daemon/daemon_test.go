@@ -11,6 +11,11 @@ import (
 	"time"
 )
 
+// createTestProxy creates a proxy instance for testing (nil for now since proxy isn't required in tests)
+func createTestProxy() interface{} {
+	return nil
+}
+
 // containsAny checks if s contains any of the substrings
 func containsAny(s string, substrs []string) bool {
 	for _, substr := range substrs {
@@ -87,7 +92,7 @@ func TestDaemonSingleInstance(t *testing.T) {
 	}
 
 	// Start first daemon in a goroutine
-	d1 := New(registry)
+	d1 := New(registry, nil)
 	errChan1 := make(chan error, 1)
 	go func() {
 		errChan1 <- d1.Start()
@@ -97,7 +102,7 @@ func TestDaemonSingleInstance(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Try to start second daemon - should fail with lock error
-	d2 := New(registry)
+	d2 := New(registry, nil)
 	errChan2 := make(chan error, 1)
 	go func() {
 		errChan2 <- d2.Start()
@@ -150,7 +155,7 @@ func TestDaemonSocketCreation(t *testing.T) {
 	}
 
 	// Start daemon in a goroutine
-	d := New(registry)
+	d := New(registry, nil)
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- d.Start()
@@ -214,7 +219,7 @@ func TestDaemonPingRequest(t *testing.T) {
 	}
 
 	// Start daemon in a goroutine
-	d := New(registry)
+	d := New(registry, nil)
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- d.Start()
@@ -293,7 +298,7 @@ func TestDaemonRegistryOperations(t *testing.T) {
 	}
 
 	// Start daemon in a goroutine
-	d := New(registry)
+	d := New(registry, nil)
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- d.Start()
@@ -404,7 +409,7 @@ func TestDaemonStatusRequest(t *testing.T) {
 	}
 
 	// Start daemon
-	d := New(registry)
+	d := New(registry, nil)
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- d.Start()
