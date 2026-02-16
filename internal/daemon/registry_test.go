@@ -85,6 +85,50 @@ func TestUpsertRoute(t *testing.T) {
 	}
 }
 
+func TestGetRoute(t *testing.T) {
+	tmpDir := t.TempDir()
+	reg := &Registry{configDir: tmpDir}
+
+	// Test getting route that doesn't exist
+	port, err := reg.GetRoute("nonexistent.local")
+	if err != nil {
+		t.Fatalf("GetRoute() failed: %v", err)
+	}
+	if port != 0 {
+		t.Errorf("GetRoute() for nonexistent host = %d, want 0", port)
+	}
+
+	// Add a route
+	err = reg.UpsertRoute("example.local", 3000)
+	if err != nil {
+		t.Fatalf("UpsertRoute() failed: %v", err)
+	}
+
+	// Get the route
+	port, err = reg.GetRoute("example.local")
+	if err != nil {
+		t.Fatalf("GetRoute() failed: %v", err)
+	}
+	if port != 3000 {
+		t.Errorf("GetRoute() = %d, want 3000", port)
+	}
+
+	// Update the route
+	err = reg.UpsertRoute("example.local", 3001)
+	if err != nil {
+		t.Fatalf("UpsertRoute() update failed: %v", err)
+	}
+
+	// Get the updated route
+	port, err = reg.GetRoute("example.local")
+	if err != nil {
+		t.Fatalf("GetRoute() after update failed: %v", err)
+	}
+	if port != 3001 {
+		t.Errorf("GetRoute() after update = %d, want 3001", port)
+	}
+}
+
 func TestListRoutes(t *testing.T) {
 	tmpDir := t.TempDir()
 	reg := &Registry{configDir: tmpDir}

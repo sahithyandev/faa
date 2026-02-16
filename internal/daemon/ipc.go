@@ -15,6 +15,7 @@ const (
 	// Request message types
 	MessageTypePing         MessageType = "ping"
 	MessageTypeUpsertRoute  MessageType = "upsert_route"
+	MessageTypeGetRoute     MessageType = "get_route"
 	MessageTypeListRoutes   MessageType = "list_routes"
 	MessageTypeSetProcess   MessageType = "set_process"
 	MessageTypeGetProcess   MessageType = "get_process"
@@ -43,6 +44,11 @@ type PingData struct{}
 type UpsertRouteData struct {
 	Host string `json:"host"`
 	Port int    `json:"port"`
+}
+
+// GetRouteData contains parameters for getting a route
+type GetRouteData struct {
+	Host string `json:"host"`
 }
 
 // ListRoutesData is empty for list routes requests

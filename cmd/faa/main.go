@@ -253,13 +253,8 @@ func handleRun(args []string) int {
 		return ExitError
 	}
 
-	// Compute host and stable port
+	// Compute host
 	host := proj.Host()
-	stablePort, err := port.StablePort(proj.Name)
-	if err != nil {
-		printError("Failed to compute stable port: %v", err)
-		return ExitError
-	}
 
 	// Get lock path for this project
 	lockPath := filepath.Join(proj.Root, ".faa.lock")
@@ -302,11 +297,32 @@ func handleRun(args []string) int {
 		}
 	}
 
+	// Check if route already exists for this host
+	existingPort, err := client.GetRoute(host)
+	if err != nil {
+		printError("Failed to check for existing route: %v", err)
+		return ExitError
+	}
+
+	// Determine final port: use existing if available, else compute stable port
+	var finalPort int
+	if existingPort > 0 {
+		// Reuse existing port from routes.json
+		finalPort = existingPort
+	} else {
+		// Compute and probe for stable port
+		finalPort, err = port.StablePort(proj.Name)
+		if err != nil {
+			printError("Failed to compute stable port: %v", err)
+			return ExitError
+		}
+	}
+
 	// Inject port into command
-	cmdWithPort, env := devproc.InjectPort(command, stablePort)
+	cmdWithPort, env := devproc.InjectPort(command, finalPort)
 
 	// Call daemon upsert_route
-	if err := client.UpsertRoute(host, stablePort); err != nil {
+	if err := client.UpsertRoute(host, finalPort); err != nil {
 		printError("Failed to upsert route: %v", err)
 		return ExitError
 	}
@@ -324,7 +340,7 @@ func handleRun(args []string) int {
 		ProjectRoot: proj.Root,
 		PID:         proc.PID,
 		Host:        host,
-		Port:        stablePort,
+		Port:        finalPort,
 		StartedAt:   startedAt,
 	}); err != nil {
 		printError("Failed to register process: %v", err)
@@ -336,7 +352,7 @@ func handleRun(args []string) int {
 	}
 
 	// Print URL and PID
-	fmt.Printf("Started: https://%s (PID %d, port %d)\n", host, proc.PID, stablePort)
+	fmt.Printf("Started: https://%s (PID %d, port %d)\n", host, proc.PID, finalPort)
 
 	// Wait for process to exit
 	err = <-proc.Wait
