@@ -175,6 +175,21 @@ func (r *Registry) UpsertRoute(host string, port int) error {
 	return r.saveRoutes(routes)
 }
 
+// GetRoute returns the port for a specific host, or 0 if not found
+func (r *Registry) GetRoute(host string) (int, error) {
+	routes, err := r.loadRoutes()
+	if err != nil {
+		return 0, err
+	}
+
+	port, ok := routes[host]
+	if !ok {
+		return 0, nil
+	}
+
+	return port, nil
+}
+
 // ListRoutes returns all routes as a slice
 func (r *Registry) ListRoutes() ([]Route, error) {
 	routes, err := r.loadRoutes()

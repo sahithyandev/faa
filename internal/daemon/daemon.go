@@ -288,6 +288,8 @@ func (d *Daemon) handleRequest(req *Request) *Response {
 		return d.handlePing(req)
 	case MessageTypeUpsertRoute:
 		return d.handleUpsertRoute(req)
+	case MessageTypeGetRoute:
+		return d.handleGetRoute(req)
 	case MessageTypeListRoutes:
 		return d.handleListRoutes(req)
 	case MessageTypeSetProcess:
@@ -336,6 +338,22 @@ func (d *Daemon) handleUpsertRoute(req *Request) *Response {
 	}
 
 	resp, _ := NewSuccessResponse(nil)
+	return resp
+}
+
+// handleGetRoute handles get_route requests
+func (d *Daemon) handleGetRoute(req *Request) *Response {
+	var data GetRouteData
+	if err := json.Unmarshal(req.Data, &data); err != nil {
+		return NewErrorResponse(fmt.Errorf("invalid request data: %w", err))
+	}
+
+	port, err := d.registry.GetRoute(data.Host)
+	if err != nil {
+		return NewErrorResponse(err)
+	}
+
+	resp, _ := NewSuccessResponse(map[string]int{"port": port})
 	return resp
 }
 

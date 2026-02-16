@@ -93,6 +93,33 @@ func (c *Client) UpsertRoute(host string, port int) error {
 	return nil
 }
 
+// GetRoute retrieves the port for a specific host from the daemon
+// Returns 0 if no route exists for the host
+func (c *Client) GetRoute(host string) (int, error) {
+	req, err := NewRequest(MessageTypeGetRoute, &GetRouteData{
+		Host: host,
+	})
+	if err != nil {
+		return 0, err
+	}
+
+	resp, err := c.sendRequest(req)
+	if err != nil {
+		return 0, err
+	}
+
+	if !resp.Ok {
+		return 0, fmt.Errorf("get_route failed: %s", resp.Error)
+	}
+
+	var result map[string]int
+	if err := json.Unmarshal(resp.Data, &result); err != nil {
+		return 0, fmt.Errorf("failed to unmarshal route: %w", err)
+	}
+
+	return result["port"], nil
+}
+
 // SetProcess registers a process in the daemon
 func (c *Client) SetProcess(data *SetProcessData) error {
 	req, err := NewRequest(MessageTypeSetProcess, data)

@@ -218,6 +218,87 @@ func TestClientUpsertRoute(t *testing.T) {
 	}
 }
 
+func TestClientGetRoute(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Override HOME for testing
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+	os.Setenv("HOME", tmpDir)
+
+	// Create registry
+	registry, err := NewRegistry()
+	if err != nil {
+		t.Fatalf("NewRegistry() failed: %v", err)
+	}
+
+	// Start daemon in a goroutine
+	d := New(registry, nil)
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- d.Start()
+	}()
+
+	// Wait for daemon to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Connect to daemon
+	client, err := Connect()
+	if err != nil {
+		t.Fatalf("Connect() failed: %v", err)
+	}
+	defer client.Close()
+
+	// Test GetRoute when route doesn't exist
+	port, err := client.GetRoute("nonexistent.local")
+	if err != nil {
+		t.Fatalf("GetRoute() failed: %v", err)
+	}
+	if port != 0 {
+		t.Errorf("GetRoute() for nonexistent route = %d, want 0", port)
+	}
+
+	// Add a route
+	if err := client.UpsertRoute("test.local", 3000); err != nil {
+		t.Fatalf("UpsertRoute() failed: %v", err)
+	}
+
+	// Test GetRoute when route exists
+	port, err = client.GetRoute("test.local")
+	if err != nil {
+		t.Fatalf("GetRoute() failed: %v", err)
+	}
+	if port != 3000 {
+		t.Errorf("GetRoute() = %d, want 3000", port)
+	}
+
+	// Update the route
+	if err := client.UpsertRoute("test.local", 3001); err != nil {
+		t.Fatalf("UpsertRoute() update failed: %v", err)
+	}
+
+	// Test GetRoute after update
+	port, err = client.GetRoute("test.local")
+	if err != nil {
+		t.Fatalf("GetRoute() after update failed: %v", err)
+	}
+	if port != 3001 {
+		t.Errorf("GetRoute() after update = %d, want 3001", port)
+	}
+
+	// Shutdown daemon
+	d.Shutdown()
+	select {
+	case err := <-errChan:
+		if err != nil {
+			t.Errorf("Daemon returned error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Daemon didn't shutdown in time")
+	}
+}
+
+
 func TestClientStatus(t *testing.T) {
 	tmpDir := t.TempDir()
 

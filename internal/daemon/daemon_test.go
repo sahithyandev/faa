@@ -605,3 +605,112 @@ func TestDaemonStartLoadRoutes(t *testing.T) {
 		t.Fatal("Daemon didn't shutdown in time")
 	}
 }
+
+func TestDaemonGetRoute(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Override HOME for testing
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+	os.Setenv("HOME", tmpDir)
+
+	// Create registry and add routes before daemon starts
+	registry, err := NewRegistry()
+	if err != nil {
+		t.Fatalf("NewRegistry() failed: %v", err)
+	}
+
+	// Add a route before daemon starts
+	if err := registry.UpsertRoute("existing.local", 5000); err != nil {
+		t.Fatalf("Failed to add route: %v", err)
+	}
+
+	// Start daemon
+	d := New(registry, nil)
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- d.Start()
+	}()
+
+	time.Sleep(200 * time.Millisecond)
+
+	// Connect to daemon
+	sockPath, err := SocketPath()
+	if err != nil {
+		t.Fatalf("SocketPath() failed: %v", err)
+	}
+
+	conn, err := net.Dial("unix", sockPath)
+	if err != nil {
+		t.Fatalf("Failed to connect to daemon: %v", err)
+	}
+	defer conn.Close()
+
+	// Test GetRoute for existing route
+	req, err := NewRequest(MessageTypeGetRoute, &GetRouteData{Host: "existing.local"})
+	if err != nil {
+		t.Fatalf("NewRequest() failed: %v", err)
+	}
+
+	if err := EncodeRequest(conn, req); err != nil {
+		t.Fatalf("EncodeRequest() failed: %v", err)
+	}
+
+	reader := bufio.NewReader(conn)
+	resp, err := DecodeResponse(reader)
+	if err != nil {
+		t.Fatalf("DecodeResponse() failed: %v", err)
+	}
+
+	if !resp.Ok {
+		t.Errorf("GetRoute response Ok = false, error: %s", resp.Error)
+	}
+
+	var result map[string]int
+	if err := json.Unmarshal(resp.Data, &result); err != nil {
+		t.Fatalf("Failed to unmarshal result: %v", err)
+	}
+
+	if result["port"] != 5000 {
+		t.Errorf("GetRoute() = %d, want 5000", result["port"])
+	}
+
+	// Test GetRoute for non-existent route
+	req2, err := NewRequest(MessageTypeGetRoute, &GetRouteData{Host: "nonexistent.local"})
+	if err != nil {
+		t.Fatalf("NewRequest() failed: %v", err)
+	}
+
+	if err := EncodeRequest(conn, req2); err != nil {
+		t.Fatalf("EncodeRequest() failed: %v", err)
+	}
+
+	resp2, err := DecodeResponse(reader)
+	if err != nil {
+		t.Fatalf("DecodeResponse() failed: %v", err)
+	}
+
+	if !resp2.Ok {
+		t.Errorf("GetRoute response Ok = false, error: %s", resp2.Error)
+	}
+
+	var result2 map[string]int
+	if err := json.Unmarshal(resp2.Data, &result2); err != nil {
+		t.Fatalf("Failed to unmarshal result: %v", err)
+	}
+
+	if result2["port"] != 0 {
+		t.Errorf("GetRoute() for nonexistent route = %d, want 0", result2["port"])
+	}
+
+	// Shutdown daemon
+	d.Shutdown()
+	select {
+	case err := <-errChan:
+		if err != nil {
+			t.Errorf("Daemon returned error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Daemon didn't shutdown in time")
+	}
+}
