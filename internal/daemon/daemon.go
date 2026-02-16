@@ -36,6 +36,12 @@ func New(registry *Registry, proxy *proxy.Proxy) *Daemon {
 
 // SocketPath returns the path to the Unix socket
 func SocketPath() (string, error) {
+	// On macOS with LaunchDaemon, use /var/run/faa if FAA_SOCKET_DIR is set
+	if socketDir := os.Getenv("FAA_SOCKET_DIR"); socketDir != "" {
+		return filepath.Join(socketDir, "ctl.sock"), nil
+	}
+	
+	// Default to user's config directory
 	configDir, err := ConfigDir()
 	if err != nil {
 		return "", err
@@ -158,6 +164,12 @@ func (d *Daemon) Start() error {
 	// Remove existing socket file if it exists (from previous unclean shutdown)
 	d.removeSocket()
 
+	// Ensure socket directory exists with proper permissions
+	sockDir := filepath.Dir(sockPath)
+	if err := os.MkdirAll(sockDir, 0755); err != nil {
+		return fmt.Errorf("failed to create socket directory: %w", err)
+	}
+
 	// Create Unix socket listener
 	listener, err := net.Listen("unix", sockPath)
 	if err != nil {
@@ -167,8 +179,14 @@ func (d *Daemon) Start() error {
 	defer listener.Close()
 	defer d.removeSocket()
 
-	// Set socket permissions to 0600 (user-only access)
-	if err := os.Chmod(sockPath, 0600); err != nil {
+	// Set socket permissions to 0666 to allow all users to connect
+	// This is needed when daemon runs as root but users need to connect
+	socketPerms := os.FileMode(0600)
+	if os.Getenv("FAA_SOCKET_DIR") != "" {
+		// When using shared socket directory (macOS LaunchDaemon), allow all users
+		socketPerms = 0666
+	}
+	if err := os.Chmod(sockPath, socketPerms); err != nil {
 		return fmt.Errorf("failed to set socket permissions: %w", err)
 	}
 
