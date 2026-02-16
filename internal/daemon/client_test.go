@@ -94,11 +94,12 @@ func TestClientGetProcess(t *testing.T) {
 		t.Errorf("Expected nil process, got: %+v", proc)
 	}
 
-	// Set a process
+	// Set a process using current PID (so it won't be cleaned up as stale)
 	startedAt := time.Now()
+	currentPID := os.Getpid()
 	if err := client.SetProcess(&SetProcessData{
 		ProjectRoot: "/tmp/test-project",
-		PID:         12345,
+		PID:         currentPID,
 		Host:        "test.local",
 		Port:        3000,
 		StartedAt:   startedAt,
@@ -117,8 +118,8 @@ func TestClientGetProcess(t *testing.T) {
 	if proc.ProjectRoot != "/tmp/test-project" {
 		t.Errorf("ProjectRoot = %s, want /tmp/test-project", proc.ProjectRoot)
 	}
-	if proc.PID != 12345 {
-		t.Errorf("PID = %d, want 12345", proc.PID)
+	if proc.PID != currentPID {
+		t.Errorf("PID = %d, want %d", proc.PID, currentPID)
 	}
 	if proc.Host != "test.local" {
 		t.Errorf("Host = %s, want test.local", proc.Host)
@@ -255,9 +256,10 @@ func TestClientStatus(t *testing.T) {
 	}
 
 	startedAt := time.Now()
+	currentPID := os.Getpid()
 	if err := client.SetProcess(&SetProcessData{
 		ProjectRoot: "/tmp/test-project",
-		PID:         12345,
+		PID:         currentPID,
 		Host:        "test.local",
 		Port:        3000,
 		StartedAt:   startedAt,
@@ -292,7 +294,7 @@ func TestClientStatus(t *testing.T) {
 	}
 	foundProcess := false
 	for _, proc := range status.Processes {
-		if proc.ProjectRoot == "/tmp/test-project" && proc.PID == 12345 {
+		if proc.ProjectRoot == "/tmp/test-project" && proc.PID == currentPID {
 			foundProcess = true
 			break
 		}

@@ -377,6 +377,9 @@ func (d *Daemon) handleGetProcess(req *Request) *Response {
 		return NewErrorResponse(fmt.Errorf("invalid request data: %w", err))
 	}
 
+	// Clean up stale processes before checking
+	_, _ = d.registry.CleanupStaleProcesses()
+
 	proc, err := d.registry.GetProcess(data.ProjectRoot)
 	if err != nil {
 		return NewErrorResponse(err)
@@ -403,6 +406,9 @@ func (d *Daemon) handleClearProcess(req *Request) *Response {
 
 // handleStatus handles status requests
 func (d *Daemon) handleStatus(req *Request) *Response {
+	// Clean up stale processes before returning status
+	_, _ = d.registry.CleanupStaleProcesses()
+
 	routes, err := d.registry.ListRoutes()
 	if err != nil {
 		return NewErrorResponse(err)

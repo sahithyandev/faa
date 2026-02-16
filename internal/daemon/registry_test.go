@@ -424,3 +424,133 @@ func TestConfigDirPermissions(t *testing.T) {
 		t.Errorf("Config directory permissions = %o, want 0755", info.Mode().Perm())
 	}
 }
+
+func TestCleanupStaleProcesses(t *testing.T) {
+	tmpDir := t.TempDir()
+	reg := &Registry{configDir: tmpDir}
+
+	startTime := time.Now()
+
+	// Add some processes: one with current PID (alive), one with fake PID (dead)
+	currentPID := os.Getpid()
+	fakePID := 999999 // This PID should not exist
+
+	// Add alive process
+	err := reg.SetProcess("/home/user/project1", currentPID, "app1.local", 3000, startTime)
+	if err != nil {
+		t.Fatalf("SetProcess() failed: %v", err)
+	}
+
+	// Add dead process
+	err = reg.SetProcess("/home/user/project2", fakePID, "app2.local", 3001, startTime)
+	if err != nil {
+		t.Fatalf("SetProcess() failed: %v", err)
+	}
+
+	// Verify both processes exist
+	processes, err := reg.ListProcesses()
+	if err != nil {
+		t.Fatalf("ListProcesses() failed: %v", err)
+	}
+	if len(processes) != 2 {
+		t.Errorf("Expected 2 processes before cleanup, got %d", len(processes))
+	}
+
+	// Clean up stale processes
+	staleCount, err := reg.CleanupStaleProcesses()
+	if err != nil {
+		t.Fatalf("CleanupStaleProcesses() failed: %v", err)
+	}
+
+	// Should have cleaned up 1 stale process
+	if staleCount != 1 {
+		t.Errorf("Expected 1 stale process, got %d", staleCount)
+	}
+
+	// Verify only alive process remains
+	processes, err = reg.ListProcesses()
+	if err != nil {
+		t.Fatalf("ListProcesses() failed: %v", err)
+	}
+	if len(processes) != 1 {
+		t.Errorf("Expected 1 process after cleanup, got %d", len(processes))
+	}
+
+	// Verify the remaining process is the alive one
+	if processes[0].PID != currentPID {
+		t.Errorf("Expected alive process with PID %d, got PID %d", currentPID, processes[0].PID)
+	}
+}
+
+func TestCleanupStaleProcesses_NoStaleProcesses(t *testing.T) {
+	tmpDir := t.TempDir()
+	reg := &Registry{configDir: tmpDir}
+
+	startTime := time.Now()
+	currentPID := os.Getpid()
+
+	// Add only alive process
+	err := reg.SetProcess("/home/user/project1", currentPID, "app1.local", 3000, startTime)
+	if err != nil {
+		t.Fatalf("SetProcess() failed: %v", err)
+	}
+
+	// Clean up stale processes
+	staleCount, err := reg.CleanupStaleProcesses()
+	if err != nil {
+		t.Fatalf("CleanupStaleProcesses() failed: %v", err)
+	}
+
+	// Should have cleaned up 0 stale processes
+	if staleCount != 0 {
+		t.Errorf("Expected 0 stale processes, got %d", staleCount)
+	}
+
+	// Verify process still exists
+	processes, err := reg.ListProcesses()
+	if err != nil {
+		t.Fatalf("ListProcesses() failed: %v", err)
+	}
+	if len(processes) != 1 {
+		t.Errorf("Expected 1 process, got %d", len(processes))
+	}
+}
+
+func TestCleanupStaleProcesses_EmptyRegistry(t *testing.T) {
+	tmpDir := t.TempDir()
+	reg := &Registry{configDir: tmpDir}
+
+	// Clean up with no processes
+	staleCount, err := reg.CleanupStaleProcesses()
+	if err != nil {
+		t.Fatalf("CleanupStaleProcesses() failed: %v", err)
+	}
+
+	// Should have cleaned up 0 stale processes
+	if staleCount != 0 {
+		t.Errorf("Expected 0 stale processes, got %d", staleCount)
+	}
+}
+
+func TestIsProcessAlive(t *testing.T) {
+	// Test with current process (should be alive)
+	currentPID := os.Getpid()
+	if !isProcessAlive(currentPID) {
+		t.Error("Current process should be alive")
+	}
+
+	// Test with invalid PID
+	if isProcessAlive(0) {
+		t.Error("PID 0 should not be alive")
+	}
+
+	if isProcessAlive(-1) {
+		t.Error("Negative PID should not be alive")
+	}
+
+	// Test with fake PID (should not be alive)
+	fakePID := 999999
+	if isProcessAlive(fakePID) {
+		t.Errorf("Fake PID %d should not be alive", fakePID)
+	}
+}

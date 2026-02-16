@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"syscall"
 	"time"
+
+	"golang.org/x/sys/unix"
 )
 
 // Registry manages routes and processes configuration
@@ -250,4 +253,41 @@ func (r *Registry) ListProcesses() ([]*Process, error) {
 	}
 
 	return result, nil
+}
+
+// isProcessAlive checks if a process with the given PID is still running
+func isProcessAlive(pid int) bool {
+	if pid <= 0 {
+		return false
+	}
+
+	// Send signal 0 to check if process exists
+	// This doesn't actually send a signal, just checks permissions and existence
+	err := unix.Kill(pid, syscall.Signal(0))
+	return err == nil
+}
+
+// CleanupStaleProcesses removes processes with dead PIDs from the registry
+// Returns the number of stale processes cleaned up
+func (r *Registry) CleanupStaleProcesses() (int, error) {
+	processes, err := r.loadProcesses()
+	if err != nil {
+		return 0, err
+	}
+
+	staleCount := 0
+	for projectRoot, proc := range processes {
+		if !isProcessAlive(proc.PID) {
+			delete(processes, projectRoot)
+			staleCount++
+		}
+	}
+
+	if staleCount > 0 {
+		if err := r.saveProcesses(processes); err != nil {
+			return staleCount, err
+		}
+	}
+
+	return staleCount, nil
 }
