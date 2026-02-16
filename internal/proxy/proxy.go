@@ -178,7 +178,7 @@ func (p *Proxy) buildConfigJSON() ([]byte, error) {
 					"handler": "reverse_proxy",
 					"upstreams": []map[string]interface{}{
 						{
-							"dial": fmt.Sprintf("127.0.0.1:%d", port),
+							"dial": fmt.Sprintf("localhost:%d", port),
 						},
 					},
 				},
