@@ -122,9 +122,25 @@ func (d *Daemon) loadAndApplyRoutes() error {
 		if err := d.proxy.ApplyRoutes(routes); err != nil {
 			return fmt.Errorf("failed to apply routes to proxy: %w", err)
 		}
+		
+		// Export CA after applying routes
+		// Routes application triggers Caddy to generate TLS certificates and CA
+		d.tryExportCA()
 	}
 
 	return nil
+}
+
+// tryExportCA attempts to export the CA certificate after routes are applied
+func (d *Daemon) tryExportCA() {
+	// Wait a bit for Caddy to generate the CA after routes are applied
+	time.Sleep(500 * time.Millisecond)
+	
+	// Try to export with retry logic
+	if err := proxy.ExportCAWithRetry(5, 500*time.Millisecond); err != nil {
+		// Log warning but don't fail - CA export is not critical for daemon operation
+		fmt.Fprintf(os.Stderr, "Warning: Failed to export CA certificate: %v\n", err)
+	}
 }
 
 // removeSocket removes the socket file if it exists
@@ -335,6 +351,9 @@ func (d *Daemon) handleUpsertRoute(req *Request) *Response {
 		if err := d.proxy.ApplyRoutes(routes); err != nil {
 			return NewErrorResponse(fmt.Errorf("failed to apply routes to proxy: %w", err))
 		}
+		
+		// Export CA after applying routes (in background to not block the response)
+		go d.tryExportCA()
 	}
 
 	resp, _ := NewSuccessResponse(nil)
