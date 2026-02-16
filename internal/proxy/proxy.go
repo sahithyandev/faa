@@ -181,6 +181,13 @@ func (p *Proxy) buildConfigJSON() ([]byte, error) {
 							"dial": fmt.Sprintf("localhost:%d", port),
 						},
 					},
+					"headers": map[string]interface{}{
+						"request": map[string]interface{}{
+							"set": map[string]interface{}{
+								"Host": []string{"localhost"},
+							},
+						},
+					},
 				},
 			},
 		}
