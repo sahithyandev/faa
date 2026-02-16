@@ -393,7 +393,7 @@ curl http://localhost:<port>
 Common causes:
 - Dev server crashed: check terminal output where you ran `faa run`
 - Dev server not listening on PORT: make sure your server uses `process.env.PORT`
-- Dev server listening on wrong interface: ensure it binds to `0.0.0.0` or `localhost`, not `127.0.0.1`
+- Dev server listening on wrong interface: ensure it binds to `0.0.0.0` (all interfaces) or `127.0.0.1`/`localhost` (loopback only), not a specific external IP
 
 ## Safety and Security Notes
 
