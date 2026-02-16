@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -22,6 +23,12 @@ const (
 
 	// caddyInitTimeout is the time to wait for Caddy to initialize and generate CA
 	caddyInitTimeout = 2 * time.Second
+
+	// daemonStartupTimeout is the maximum time to wait for daemon to start
+	daemonStartupTimeout = 5 * time.Second
+
+	// daemonStartupRetryDelay is the delay between connection attempts
+	daemonStartupRetryDelay = 100 * time.Millisecond
 )
 
 func main() {
@@ -212,6 +219,84 @@ func handleDaemon(args []string) int {
 	return ExitSuccess
 }
 
+// isDaemonRunning checks if the daemon is currently running
+func isDaemonRunning() bool {
+	client, err := daemon.Connect()
+	if err != nil {
+		return false
+	}
+	defer client.Close()
+
+	// Try to ping the daemon
+	if err := client.Ping(); err != nil {
+		return false
+	}
+
+	return true
+}
+
+// startDaemonInBackground starts the daemon process in the background
+func startDaemonInBackground() error {
+	// Get the path to the current executable
+	execPath, err := os.Executable()
+	if err != nil {
+		return fmt.Errorf("failed to get executable path: %w", err)
+	}
+
+	// Start daemon as a detached background process
+	cmd := exec.Command(execPath, "daemon")
+
+	// Redirect output to /dev/null to suppress daemon output
+	// Users can check daemon status with 'faa status' or manually run 'faa daemon' to see output
+	devNull, err := os.OpenFile(os.DevNull, os.O_WRONLY, 0)
+	if err != nil {
+		return fmt.Errorf("failed to open /dev/null: %w", err)
+	}
+	cmd.Stdout = devNull
+	cmd.Stderr = devNull
+	cmd.Stdin = nil
+
+	if err := cmd.Start(); err != nil {
+		devNull.Close()
+		return fmt.Errorf("failed to start daemon: %w", err)
+	}
+
+	// Wait for the daemon process in a goroutine and log any errors
+	go func() {
+		defer devNull.Close()
+		if err := cmd.Wait(); err != nil {
+			// Log to stderr so users can see if daemon exits unexpectedly
+			fmt.Fprintf(os.Stderr, "Warning: daemon process exited: %v\n", err)
+		}
+	}()
+
+	return nil
+}
+
+// ensureDaemonRunning checks if the daemon is running, and if not, starts it
+func ensureDaemonRunning() error {
+	// Check if daemon is already running
+	if isDaemonRunning() {
+		return nil
+	}
+
+	// Start daemon in background
+	if err := startDaemonInBackground(); err != nil {
+		return fmt.Errorf("failed to start daemon: %w", err)
+	}
+
+	// Wait for daemon to be ready with retry logic
+	deadline := time.Now().Add(daemonStartupTimeout)
+	for time.Now().Before(deadline) {
+		if isDaemonRunning() {
+			return nil
+		}
+		time.Sleep(daemonStartupRetryDelay)
+	}
+
+	return fmt.Errorf("daemon failed to start within %v. The daemon may require elevated permissions. Try running 'faa setup' to configure permissions, or start the daemon manually with 'faa daemon'", daemonStartupTimeout)
+}
+
 func handleRun(args []string) int {
 	// Parse arguments to find the command
 	var command []string
@@ -267,10 +352,16 @@ func handleRun(args []string) int {
 	}
 	defer projectLock.Release()
 
+	// Ensure daemon is running (start it if needed)
+	if err := ensureDaemonRunning(); err != nil {
+		printError("Failed to ensure daemon is running: %v", err)
+		return ExitError
+	}
+
 	// Connect to daemon
 	client, err := daemon.Connect()
 	if err != nil {
-		printError("Failed to connect to daemon (is daemon running?): %v", err)
+		printError("Failed to connect to daemon: %v", err)
 		return ExitError
 	}
 	defer client.Close()

@@ -244,3 +244,118 @@ func TestCAPathHelp(t *testing.T) {
 		t.Error("Help output should contain 'CA certificate'")
 	}
 }
+
+// TestEnsureDaemonRunning tests the ensureDaemonRunning function
+func TestEnsureDaemonRunning(t *testing.T) {
+	// Create temp directory for test
+	tmpDir := t.TempDir()
+
+	// Override HOME for testing
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+	os.Setenv("HOME", tmpDir)
+
+	// Create registry and start daemon without proxy (so it doesn't need elevated permissions)
+	registry, err := daemon.NewRegistry()
+	if err != nil {
+		t.Fatalf("NewRegistry() failed: %v", err)
+	}
+
+	d := daemon.New(registry, nil)
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- d.Start()
+	}()
+
+	// Wait for daemon to start
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if isDaemonRunning() {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	// Test that ensureDaemonRunning returns nil when daemon is already running
+	if err := ensureDaemonRunning(); err != nil {
+		t.Errorf("ensureDaemonRunning() failed when daemon is running: %v", err)
+	}
+
+	// Cleanup: Shutdown daemon
+	d.Shutdown()
+	select {
+	case err := <-errChan:
+		if err != nil {
+			t.Errorf("Daemon returned error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Daemon didn't shutdown in time")
+	}
+}
+
+// TestIsDaemonRunning tests the isDaemonRunning function
+func TestIsDaemonRunning(t *testing.T) {
+	// Create temp directory for test
+	tmpDir := t.TempDir()
+
+	// Override HOME for testing
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+	os.Setenv("HOME", tmpDir)
+
+	// Initially daemon should not be running
+	if isDaemonRunning() {
+		t.Error("isDaemonRunning() should return false when daemon is not running")
+	}
+
+	// Create registry and start daemon without proxy
+	registry, err := daemon.NewRegistry()
+	if err != nil {
+		t.Fatalf("NewRegistry() failed: %v", err)
+	}
+
+	d := daemon.New(registry, nil)
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- d.Start()
+	}()
+
+	// Wait for daemon to start with polling
+	deadline := time.Now().Add(2 * time.Second)
+	for time.Now().Before(deadline) {
+		if isDaemonRunning() {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+
+	// Now daemon should be running
+	if !isDaemonRunning() {
+		t.Error("isDaemonRunning() should return true when daemon is running")
+	}
+
+	// Cleanup: Shutdown daemon
+	d.Shutdown()
+	select {
+	case err := <-errChan:
+		if err != nil {
+			t.Errorf("Daemon returned error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Daemon didn't shutdown in time")
+	}
+
+	// After shutdown, daemon should not be running - wait with polling
+	deadline = time.Now().Add(2 * time.Second)
+	daemonStopped := false
+	for time.Now().Before(deadline) {
+		if !isDaemonRunning() {
+			daemonStopped = true
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if !daemonStopped {
+		t.Error("isDaemonRunning() should return false after daemon is shutdown")
+	}
+}
