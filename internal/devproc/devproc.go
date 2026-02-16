@@ -35,7 +35,7 @@ func Start(command []string, cwd string, env map[string]string) (*Process, error
 	// Create command
 	ctx := context.Background()
 	cmd := exec.CommandContext(ctx, command[0], command[1:]...)
-	
+
 	// Set working directory
 	if cwd != "" {
 		cmd.Dir = cwd
@@ -139,7 +139,7 @@ func StartWithSignalHandler(command []string, cwd string, env map[string]string)
 	go func() {
 		sig := <-sigChan
 		fmt.Fprintf(os.Stderr, "\nReceived signal %v, terminating process...\n", sig)
-		
+
 		// Stop the process
 		if err := proc.Stop(); err != nil {
 			fmt.Fprintf(os.Stderr, "Error stopping process: %v\n", err)

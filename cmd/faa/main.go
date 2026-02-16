@@ -159,7 +159,7 @@ func handleDaemon(args []string) int {
 
 	// Create proxy
 	p := proxy.New()
-	
+
 	// Start proxy
 	ctx := context.Background()
 	if err := p.Start(ctx); err != nil {
@@ -181,7 +181,7 @@ func handleDaemon(args []string) int {
 func handleRun(args []string) int {
 	// Parse arguments to find the command
 	var command []string
-	
+
 	// Check if there's a "--" separator
 	foundSeparator := false
 	for i, arg := range args {
@@ -194,31 +194,31 @@ func handleRun(args []string) int {
 			break
 		}
 	}
-	
+
 	// If no "--" found, treat all args as the command
 	if !foundSeparator {
 		command = args
 	}
-	
+
 	// Validate command
 	if len(command) == 0 {
 		printError("No command specified. Usage: faa run -- <command> [args...]")
 		return ExitError
 	}
-	
+
 	// Find project root and name
 	cwd, err := os.Getwd()
 	if err != nil {
 		printError("Failed to get current directory: %v", err)
 		return ExitError
 	}
-	
+
 	proj, err := project.FindProjectRoot(cwd)
 	if err != nil {
 		printError("Failed to find project root: %v", err)
 		return ExitError
 	}
-	
+
 	// Compute host and stable port
 	host := proj.Host()
 	stablePort, err := port.StablePort(proj.Name)
@@ -226,10 +226,10 @@ func handleRun(args []string) int {
 		printError("Failed to compute stable port: %v", err)
 		return ExitError
 	}
-	
+
 	// Get lock path for this project
 	lockPath := filepath.Join(proj.Root, ".faa.lock")
-	
+
 	// Acquire project lock
 	projectLock, err := lock.Acquire(lockPath)
 	if err != nil {
@@ -237,7 +237,7 @@ func handleRun(args []string) int {
 		return ExitError
 	}
 	defer projectLock.Release()
-	
+
 	// Connect to daemon
 	client, err := daemon.Connect()
 	if err != nil {
@@ -245,19 +245,19 @@ func handleRun(args []string) int {
 		return ExitError
 	}
 	defer client.Close()
-	
+
 	// Check if process already running
 	existingProc, err := client.GetProcess(proj.Root)
 	if err != nil {
 		printError("Failed to check for existing process: %v", err)
 		return ExitError
 	}
-	
+
 	// If process exists, check if it's still alive
 	if existingProc != nil {
 		if devproc.IsAlive(existingProc.PID) {
 			// Process is still running
-			fmt.Printf("Already running: https://%s (PID %d, port %d)\n", 
+			fmt.Printf("Already running: https://%s (PID %d, port %d)\n",
 				existingProc.Host, existingProc.PID, existingProc.Port)
 			return ExitSuccess
 		}
@@ -267,23 +267,23 @@ func handleRun(args []string) int {
 			return ExitError
 		}
 	}
-	
+
 	// Inject port into command
 	cmdWithPort, env := devproc.InjectPort(command, stablePort)
-	
+
 	// Call daemon upsert_route
 	if err := client.UpsertRoute(host, stablePort); err != nil {
 		printError("Failed to upsert route: %v", err)
 		return ExitError
 	}
-	
+
 	// Start dev server with signal handler
 	proc, err := devproc.StartWithSignalHandler(cmdWithPort, proj.Root, env)
 	if err != nil {
 		printError("Failed to start dev server: %v", err)
 		return ExitError
 	}
-	
+
 	// Record process in daemon registry
 	startedAt := time.Now()
 	if err := client.SetProcess(&daemon.SetProcessData{
@@ -300,24 +300,24 @@ func handleRun(args []string) int {
 		}
 		return ExitError
 	}
-	
+
 	// Print URL and PID
 	fmt.Printf("Started: https://%s (PID %d, port %d)\n", host, proc.PID, stablePort)
-	
+
 	// Wait for process to exit
 	err = <-proc.Wait
-	
+
 	// Clear process from registry
 	if clearErr := client.ClearProcess(proj.Root); clearErr != nil {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to clear process from registry during cleanup: %v\n", clearErr)
 	}
-	
+
 	// Return appropriate exit code
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Process exited with error: %v\n", err)
 		return ExitError
 	}
-	
+
 	fmt.Println("Process exited successfully")
 	return ExitSuccess
 }
@@ -359,7 +359,7 @@ func handleStatus(args []string) int {
 		fmt.Println("  No processes running")
 	} else {
 		for _, proc := range status.Processes {
-			fmt.Printf("  PID %d: %s (https://%s, port %d)\n", 
+			fmt.Printf("  PID %d: %s (https://%s, port %d)\n",
 				proc.PID, proc.ProjectRoot, proc.Host, proc.Port)
 		}
 	}

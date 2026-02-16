@@ -34,7 +34,7 @@ func FindProjectRoot(startDir string) (*Project, error) {
 	currentDir := absPath
 	for {
 		packageJSONPath := filepath.Join(currentDir, "package.json")
-		
+
 		// Check if package.json exists
 		if _, err := os.Stat(packageJSONPath); err == nil {
 			// Found package.json, read and parse it
@@ -59,12 +59,12 @@ func FindProjectRoot(startDir string) (*Project, error) {
 
 		// Move up to parent directory
 		parentDir := filepath.Dir(currentDir)
-		
+
 		// Check if we've reached the root
 		if parentDir == currentDir {
 			return nil, fmt.Errorf("no package.json found")
 		}
-		
+
 		currentDir = parentDir
 	}
 }
@@ -78,18 +78,18 @@ func FindProjectRoot(startDir string) (*Project, error) {
 func normalizeName(name string) string {
 	// Convert to lowercase
 	name = strings.ToLower(name)
-	
+
 	// Replace any character that is not a-z, 0-9, or dash with a dash
 	re := regexp.MustCompile(`[^a-z0-9-]+`)
 	name = re.ReplaceAllString(name, "-")
-	
+
 	// Collapse consecutive dashes
 	re = regexp.MustCompile(`-+`)
 	name = re.ReplaceAllString(name, "-")
-	
+
 	// Trim dashes from start and end
 	name = strings.Trim(name, "-")
-	
+
 	return name
 }
 

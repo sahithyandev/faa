@@ -86,7 +86,7 @@ func (d *Daemon) writePidFile() error {
 
 	pid := os.Getpid()
 	pidStr := fmt.Sprintf("%d\n", pid)
-	
+
 	if err := os.WriteFile(pidPath, []byte(pidStr), 0644); err != nil {
 		return fmt.Errorf("failed to write PID file: %w", err)
 	}
@@ -417,7 +417,7 @@ func (d *Daemon) handleStop(req *Request) *Response {
 	// coordination with Caddy, which is not part of this initial implementation.
 	// For now, routes are only cleared when explicitly requested via clear_process
 	// or when the user manually deletes the routes.json file.
-	
+
 	// Trigger graceful shutdown after sending response
 	go func() {
 		time.Sleep(100 * time.Millisecond)

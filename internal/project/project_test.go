@@ -136,11 +136,11 @@ func TestFindProjectRoot(t *testing.T) {
 	}
 
 	tests := []struct {
-		name          string
-		startDir      string
-		expectedRoot  string
-		expectedName  string
-		expectError   bool
+		name         string
+		startDir     string
+		expectedRoot string
+		expectedName string
+		expectError  bool
 	}{
 		{
 			name:         "from project root",
@@ -246,7 +246,7 @@ func TestFindProjectRootWithInvalidJSON(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	// Create a package.json with invalid JSON
-	invalidJSON := []byte(`{"name": "test`, ) // incomplete JSON
+	invalidJSON := []byte(`{"name": "test`) // incomplete JSON
 	if err := os.WriteFile(filepath.Join(tmpDir, "package.json"), invalidJSON, 0644); err != nil {
 		t.Fatalf("failed to create invalid package.json: %v", err)
 	}

@@ -438,4 +438,3 @@ func TestClientStop(t *testing.T) {
 		t.Fatal("Daemon didn't shutdown in time after Stop()")
 	}
 }
-

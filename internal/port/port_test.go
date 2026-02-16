@@ -153,7 +153,7 @@ func TestStablePort_Wrapping(t *testing.T) {
 	// This test verifies that probing wraps around correctly
 	// We can't easily test the actual wrapping without occupying many ports,
 	// but we can verify the logic by checking multiple project names
-	
+
 	// Test a variety of names to ensure wrapping logic doesn't break
 	projectNames := make([]string, 100)
 	for i := 0; i < 100; i++ {

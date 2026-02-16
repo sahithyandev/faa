@@ -292,9 +292,9 @@ func TestStartWithSignalHandler(t *testing.T) {
 
 func TestStart_ProcessExitCode(t *testing.T) {
 	tests := []struct {
-		name       string
-		command    []string
-		wantError  bool
+		name      string
+		command   []string
+		wantError bool
 	}{
 		{
 			name:      "successful exit",
@@ -340,7 +340,7 @@ func TestStart_Sequential(t *testing.T) {
 	// Test starting multiple processes sequentially
 	const numProcesses = 5
 	procs := make([]*Process, numProcesses)
-	
+
 	for i := 0; i < numProcesses; i++ {
 		var err error
 		procs[i], err = Start([]string{"echo", fmt.Sprintf("process-%d", i)}, "", nil)
