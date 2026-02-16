@@ -17,6 +17,7 @@ const (
 	MessageTypeUpsertRoute  MessageType = "upsert_route"
 	MessageTypeListRoutes   MessageType = "list_routes"
 	MessageTypeSetProcess   MessageType = "set_process"
+	MessageTypeGetProcess   MessageType = "get_process"
 	MessageTypeClearProcess MessageType = "clear_process"
 	MessageTypeStatus       MessageType = "status"
 	MessageTypeStop         MessageType = "stop"
@@ -54,6 +55,11 @@ type SetProcessData struct {
 	Host        string    `json:"host"`
 	Port        int       `json:"port"`
 	StartedAt   time.Time `json:"startedAt,omitempty"`
+}
+
+// GetProcessData contains parameters for getting a process
+type GetProcessData struct {
+	ProjectRoot string `json:"projectRoot"`
 }
 
 // ClearProcessData contains parameters for clearing a process

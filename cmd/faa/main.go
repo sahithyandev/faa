@@ -4,8 +4,14 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/sahithyandev/faa/internal/daemon"
+	"github.com/sahithyandev/faa/internal/devproc"
+	"github.com/sahithyandev/faa/internal/lock"
+	"github.com/sahithyandev/faa/internal/port"
+	"github.com/sahithyandev/faa/internal/project"
 	"github.com/sahithyandev/faa/internal/proxy"
 )
 
@@ -172,8 +178,144 @@ func handleDaemon(args []string) int {
 }
 
 func handleRun(args []string) int {
-	fmt.Println("Run command with args:", args)
-	// TODO: Dispatch to internal package
+	// Parse arguments to find the command
+	var command []string
+	
+	// Check if there's a "--" separator
+	foundSeparator := false
+	for i, arg := range args {
+		if arg == "--" {
+			// Command starts after "--"
+			if i+1 < len(args) {
+				command = args[i+1:]
+			}
+			foundSeparator = true
+			break
+		}
+	}
+	
+	// If no "--" found, treat all args as the command
+	if !foundSeparator {
+		command = args
+	}
+	
+	// Validate command
+	if len(command) == 0 {
+		printError("No command specified. Usage: faa run -- <command> [args...]")
+		return ExitError
+	}
+	
+	// Find project root and name
+	cwd, err := os.Getwd()
+	if err != nil {
+		printError("Failed to get current directory: %v", err)
+		return ExitError
+	}
+	
+	proj, err := project.FindProjectRoot(cwd)
+	if err != nil {
+		printError("Failed to find project root: %v", err)
+		return ExitError
+	}
+	
+	// Compute host and stable port
+	host := proj.Host()
+	stablePort, err := port.StablePort(proj.Name)
+	if err != nil {
+		printError("Failed to compute stable port: %v", err)
+		return ExitError
+	}
+	
+	// Get lock path for this project
+	lockPath := filepath.Join(proj.Root, ".faa.lock")
+	
+	// Acquire project lock
+	projectLock, err := lock.Acquire(lockPath)
+	if err != nil {
+		printError("Failed to acquire project lock (is another instance running?): %v", err)
+		return ExitError
+	}
+	defer projectLock.Release()
+	
+	// Connect to daemon
+	client, err := daemon.Connect()
+	if err != nil {
+		printError("Failed to connect to daemon (is daemon running?): %v", err)
+		return ExitError
+	}
+	defer client.Close()
+	
+	// Check if process already running
+	existingProc, err := client.GetProcess(proj.Root)
+	if err != nil {
+		printError("Failed to check for existing process: %v", err)
+		return ExitError
+	}
+	
+	// If process exists, check if it's still alive
+	if existingProc != nil {
+		if devproc.IsAlive(existingProc.PID) {
+			// Process is still running
+			fmt.Printf("Already running: https://%s (PID %d, port %d)\n", 
+				existingProc.Host, existingProc.PID, existingProc.Port)
+			return ExitSuccess
+		}
+		// Process is dead, clean it up
+		if err := client.ClearProcess(proj.Root); err != nil {
+			printError("Failed to clear dead process: %v", err)
+			return ExitError
+		}
+	}
+	
+	// Inject port into command
+	cmdWithPort, env := devproc.InjectPort(command, stablePort)
+	
+	// Call daemon upsert_route
+	if err := client.UpsertRoute(host, stablePort); err != nil {
+		printError("Failed to upsert route: %v", err)
+		return ExitError
+	}
+	
+	// Start dev server with signal handler
+	proc, err := devproc.StartWithSignalHandler(cmdWithPort, proj.Root, env)
+	if err != nil {
+		printError("Failed to start dev server: %v", err)
+		return ExitError
+	}
+	
+	// Record process in daemon registry
+	startedAt := time.Now()
+	if err := client.SetProcess(&daemon.SetProcessData{
+		ProjectRoot: proj.Root,
+		PID:         proc.PID,
+		Host:        host,
+		Port:        stablePort,
+		StartedAt:   startedAt,
+	}); err != nil {
+		printError("Failed to register process: %v", err)
+		// Try to stop the process we just started
+		proc.Stop()
+		return ExitError
+	}
+	
+	// Print URL and PID
+	fmt.Printf("Started: https://%s (PID %d, port %d)\n", host, proc.PID, stablePort)
+	
+	// Wait for process to exit
+	err = <-proc.Wait
+	
+	// Clear process from registry
+	if clearErr := client.ClearProcess(proj.Root); clearErr != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to clear process from registry: %v\n", clearErr)
+	}
+	
+	// Return appropriate exit code
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Process exited with error: %v\n", err)
+		return ExitError
+	}
+	
+	fmt.Println("Process exited successfully")
 	return ExitSuccess
 }
 
