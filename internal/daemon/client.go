@@ -130,8 +130,8 @@ func (c *Client) GetProcess(projectRoot string) (*Process, error) {
 		return nil, fmt.Errorf("get_process failed: %s", resp.Error)
 	}
 
-	// If data is null, no process found
-	if resp.Data == nil {
+	// If data is null or empty, no process found
+	if resp.Data == nil || len(resp.Data) == 0 || string(resp.Data) == "null" {
 		return nil, nil
 	}
 
