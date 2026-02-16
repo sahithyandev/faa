@@ -100,11 +100,12 @@ func ExportCA() error {
 	return nil
 }
 
-// TryExportCA attempts to export the CA certificate, silently ignoring errors.
-// This is useful for cases where the CA might not be generated yet.
+// TryExportCA attempts to export the CA certificate, silently ignoring ALL errors.
+// This is useful for best-effort scenarios where CA export is desired but not required.
+// All failures (missing CA, permission errors, etc.) are silently ignored.
 func TryExportCA() {
 	if err := ExportCA(); err != nil {
-		// Silently ignore errors - CA might not be generated yet
+		// Silently ignore all errors - CA export is a best-effort operation
 	}
 }
 

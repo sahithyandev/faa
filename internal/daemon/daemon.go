@@ -16,6 +16,14 @@ import (
 	"github.com/sahithyandev/faa/internal/proxy"
 )
 
+const (
+	// maxCAExportAttempts is the number of times to retry CA certificate export
+	maxCAExportAttempts = 3
+	
+	// caExportRetryDelay is the delay between CA certificate export retry attempts
+	caExportRetryDelay = 300 * time.Millisecond
+)
+
 // Daemon represents the daemon process that manages routes and processes
 type Daemon struct {
 	registry *Registry
@@ -135,8 +143,7 @@ func (d *Daemon) loadAndApplyRoutes() error {
 func (d *Daemon) tryExportCA() {
 	// Try to export with retry logic
 	// Quick retries since Caddy generates certificates almost immediately after routes are applied
-	// 3 attempts with 300ms delays = max 900ms, which should be sufficient
-	if err := proxy.ExportCAWithRetry(3, 300*time.Millisecond); err != nil {
+	if err := proxy.ExportCAWithRetry(maxCAExportAttempts, caExportRetryDelay); err != nil {
 		// Log warning but don't fail - CA export is not critical for daemon operation
 		// Failures are logged to stderr and not surfaced to caller as this is a
 		// best-effort operation that can be retried by running 'faa ca-path' later
