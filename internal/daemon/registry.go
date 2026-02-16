@@ -77,7 +77,11 @@ func (r *Registry) processesPath() string {
 // normalizeHost ensures a hostname has the .local suffix
 // If the host already ends with .local, it returns it unchanged
 // Otherwise, it appends .local to the host
+// Empty hostnames are returned unchanged to avoid creating invalid ".local" hostnames
 func normalizeHost(host string) string {
+	if host == "" {
+		return host
+	}
 	if strings.HasSuffix(host, ".local") {
 		return host
 	}

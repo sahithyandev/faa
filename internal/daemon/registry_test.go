@@ -628,7 +628,7 @@ func TestNormalizeHost(t *testing.T) {
 		{
 			name:     "empty host",
 			input:    "",
-			expected: ".local",
+			expected: "",
 		},
 	}
 
