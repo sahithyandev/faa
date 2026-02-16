@@ -213,17 +213,17 @@ func TestProjectHost(t *testing.T) {
 		{
 			name:         "simple name",
 			projectName:  "myproject",
-			expectedHost: "myproject",
+			expectedHost: "myproject.local",
 		},
 		{
 			name:         "normalized name",
 			projectName:  "my-project",
-			expectedHost: "my-project",
+			expectedHost: "my-project.local",
 		},
 		{
 			name:         "with numbers",
 			projectName:  "project-123",
-			expectedHost: "project-123",
+			expectedHost: "project-123.local",
 		},
 	}
 
