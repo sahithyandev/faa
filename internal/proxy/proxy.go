@@ -232,6 +232,7 @@ func (p *Proxy) buildConfigJSON() ([]byte, error) {
 									"ca":     "local",
 								},
 							},
+							"disable_ocsp_stapling": true,
 						},
 					},
 				},
