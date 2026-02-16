@@ -1,12 +1,12 @@
 # faa
 
-**faa** (Fast App Access) is a CLI tool for streamlining local development workflows. It automatically manages ports, routes, and HTTPS certificates for multiple Node.js projects, making it easy to run and access your development servers.
+faa is a CLI tool for streamlining local development workflows. It automatically manages ports, routes, and HTTPS certificates for multiple Node.js projects, making it easy to run and access your development servers.
 
 ## Status
 
-**Current Stage:** Beta - Core functionality is stable and tested. The project is ready for early adopters.
+Current Stage: Beta - Core functionality is stable and tested. The project is ready for early adopters.
 
-✅ **Working Features:**
+Working Features:
 - Daemon-based process management
 - Automatic stable port allocation per project
 - HTTPS reverse proxy with local CA (powered by Caddy)
@@ -14,18 +14,18 @@
 - Project detection via package.json
 - Process lifecycle management
 
-⚠️ **Known Limitations:**
+Known Limitations:
 - `setup` command is not yet implemented
 - Daemon auto-restart not implemented
 - Configuration directory is hardcoded to `~/.config/faa`
 
 ## Key Features
 
-- **Stable Port Assignment**: Each project gets a deterministic port based on its name hash, so ports stay consistent across restarts
-- **Automatic HTTPS**: Embedded Caddy reverse proxy provides local HTTPS with automatic certificate management
-- **Daemon Architecture**: Long-running background daemon manages routes and processes
-- **No Port Conflicts**: Automatically avoids common development ports (3000, 8080, etc.)
-- **Process Management**: Track and manage multiple running dev servers from a single daemon
+- Stable Port Assignment: Each project gets a deterministic port based on its name hash, so ports stay consistent across restarts
+- Automatic HTTPS: Embedded Caddy reverse proxy provides local HTTPS with automatic certificate management
+- Daemon Architecture: Long-running background daemon manages routes and processes
+- No Port Conflicts: Automatically avoids common development ports (3000, 8080, etc.)
+- Process Management: Track and manage multiple running dev servers from a single daemon
 
 ## Architecture
 
