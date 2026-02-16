@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -204,6 +203,3 @@ type projectInfo struct {
 func (p *projectInfo) Host() string {
 	return p.Name
 }
-
-// Unused but required for testing
-var _ = context.Background()
