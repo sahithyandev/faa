@@ -65,7 +65,7 @@ func ExportCA() error {
 	}
 
 	// Check if destination exists and is up-to-date
-	if destInfo, err := os.Stat(destPath); err == nil {
+	if _, err := os.Stat(destPath); err == nil {
 		// Compare file contents to see if we need to update
 		srcContent, err := os.ReadFile(srcPath)
 		if err != nil {
@@ -83,7 +83,6 @@ func ExportCA() error {
 		}
 
 		// Files differ, need to update
-		_ = destInfo // Silence unused variable warning
 	}
 
 	// Read source certificate

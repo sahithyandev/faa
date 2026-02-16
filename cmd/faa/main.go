@@ -19,6 +19,9 @@ import (
 const (
 	ExitSuccess = 0
 	ExitError   = 1
+
+	// caddyInitTimeout is the time to wait for Caddy to initialize and generate CA
+	caddyInitTimeout = 2 * time.Second
 )
 
 func main() {
@@ -186,7 +189,7 @@ func handleDaemon(args []string) int {
 	defer p.Stop()
 
 	// Wait a moment for Caddy to initialize and generate CA if needed
-	time.Sleep(2 * time.Second)
+	time.Sleep(caddyInitTimeout)
 
 	// Export CA certificate to config directory
 	if err := proxy.ExportCA(); err != nil {
@@ -194,8 +197,9 @@ func handleDaemon(args []string) int {
 		fmt.Fprintf(os.Stderr, "Warning: Failed to export CA certificate: %v\n", err)
 		fmt.Fprintf(os.Stderr, "The CA certificate will be available after Caddy generates it.\n")
 	} else {
-		caPath, _ := proxy.GetCAPath()
-		fmt.Printf("CA certificate exported to: %s\n", caPath)
+		if caPath, err := proxy.GetCAPath(); err == nil {
+			fmt.Printf("CA certificate exported to: %s\n", caPath)
+		}
 	}
 
 	// Create and start daemon
