@@ -13,6 +13,7 @@ import (
 	"github.com/sahithyandev/faa/internal/port"
 	"github.com/sahithyandev/faa/internal/project"
 	"github.com/sahithyandev/faa/internal/proxy"
+	"github.com/sahithyandev/faa/internal/setup"
 )
 
 const (
@@ -144,8 +145,10 @@ func printSubcommandHelp(subcommand string) {
 }
 
 func handleSetup(args []string) int {
-	fmt.Println("Setup command with args:", args)
-	// TODO: Dispatch to internal/setup package
+	if err := setup.Run(); err != nil {
+		printError("Setup failed: %v", err)
+		return ExitError
+	}
 	return ExitSuccess
 }
 

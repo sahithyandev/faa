@@ -13,9 +13,9 @@ Working Features:
 - IPC-based communication between CLI and daemon
 - Project detection via package.json
 - Process lifecycle management
+- Linux setup command for privileged port binding and CA trust
 
 Known Limitations:
-- `setup` command is not yet implemented
 - Daemon auto-restart not implemented
 - Configuration directory is hardcoded to `~/.config/faa`
 
@@ -73,9 +73,25 @@ go build -o bin/faa ./cmd/faa
 
 ## Usage
 
+### Initial Setup (Linux)
+
+Before using faa, run the setup command to configure your system:
+
+```bash
+faa setup
+```
+
+This command will:
+1. Check if you can bind to privileged ports (80/443)
+2. Optionally run `sudo setcap` to allow binding without root
+3. Detect your Linux trust store (Debian/Ubuntu or RHEL/CentOS/Fedora)
+4. Optionally install the Caddy root CA certificate to your system trust store
+
+Note: The CA certificate is created when you first start the daemon, so you may need to run `faa daemon` first, then run `faa setup` again to install the certificate.
+
 ### Starting the Daemon
 
-First, start the daemon in the background:
+After setup, start the daemon in the background:
 
 ```bash
 faa daemon &
@@ -195,11 +211,16 @@ faa/
 │   ├── port/          # Port allocation logic
 │   ├── project/       # Project detection (package.json)
 │   ├── proxy/         # Embedded Caddy proxy
-│   └── setup/         # Setup utilities (stub)
+│   └── setup/         # Setup utilities
 └── README.md
 ```
 
 ## Troubleshooting
+
+### Cannot bind to ports 80/443
+- Run `faa setup` to configure privileged port binding
+- The setup command will offer to run `sudo setcap cap_net_bind_service=+ep` on your binary
+- Alternatively, run the daemon with `sudo` (not recommended)
 
 ### Daemon won't start
 - Check if another instance is running: `ps aux | grep "faa daemon"`
@@ -207,8 +228,9 @@ faa/
 - Ensure port 2019 (Caddy admin) is available
 
 ### HTTPS certificate warnings
-- faa uses Caddy's local CA for HTTPS certificates
-- Trust the CA certificate: Check Caddy documentation for your OS
+- Run `faa setup` to install the Caddy root CA certificate
+- The setup command will detect your Linux trust store and install the certificate
+- For manual installation, see the instructions printed by `faa setup`
 - Certificates are automatically managed in `~/.local/share/caddy/`
 
 ### Port already in use
