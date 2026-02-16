@@ -53,11 +53,6 @@ func (p *Proxy) Start(ctx context.Context) error {
 		return fmt.Errorf("proxy is already running")
 	}
 
-	// Initialize with default test route
-	if len(p.routes) == 0 {
-		p.routes["example.local"] = 12345
-	}
-
 	// Build Caddy configuration as JSON
 	configJSON, err := p.buildConfigJSON()
 	if err != nil {
@@ -67,7 +62,6 @@ func (p *Proxy) Start(ctx context.Context) error {
 	// Run Caddy with the configuration
 	err = caddy.Run(&caddy.Config{
 		Admin: &caddy.AdminConfig{
-			Disabled: false,
 			Listen:   "localhost:2019",
 		},
 	})
@@ -167,7 +161,6 @@ func (p *Proxy) buildConfigJSON() ([]byte, error) {
 	// Build the configuration
 	config := map[string]interface{}{
 		"admin": map[string]interface{}{
-			"disabled": false,
 			"listen":   "localhost:2019",
 		},
 		"apps": map[string]interface{}{

@@ -188,8 +188,16 @@ func TestDefaultRoute(t *testing.T) {
 	p := NewWithPorts(18085, 18448)
 	ctx := context.Background()
 
-	// Start without explicitly setting routes
-	err := p.Start(ctx)
+	// Set a test route before starting
+	err := p.ApplyRoutes(map[string]int{
+		"example.local": 12345,
+	})
+	if err != nil {
+		t.Fatalf("ApplyRoutes() failed: %v", err)
+	}
+
+	// Start the proxy
+	err = p.Start(ctx)
 	if err != nil {
 		t.Fatalf("Start() failed: %v", err)
 	}
@@ -198,21 +206,21 @@ func TestDefaultRoute(t *testing.T) {
 	// Give it a moment to initialize
 	time.Sleep(500 * time.Millisecond)
 
-	// Check that default route is present
+	// Check that route is present
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
 	if len(p.routes) == 0 {
-		t.Error("Expected at least one default route")
+		t.Error("Expected at least one route")
 	}
 
 	port, exists := p.routes["example.local"]
 	if !exists {
-		t.Error("Expected default route 'example.local' to exist")
+		t.Error("Expected route 'example.local' to exist")
 	}
 
 	if port != 12345 {
-		t.Errorf("Expected default port 12345, got %d", port)
+		t.Errorf("Expected port 12345, got %d", port)
 	}
 }
 
