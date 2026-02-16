@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/sahithyandev/faa/internal/proxy"
 )
 
 // Run executes the setup process for the current platform
@@ -150,21 +152,21 @@ func checkCATrust() error {
 	fmt.Println()
 	fmt.Println("Checking CA certificate trust...")
 
-	// Get Caddy CA certificate path
-	homeDir, err := os.UserHomeDir()
+	// Get CA certificate path from proxy package
+	caCertPath, err := proxy.GetCAPath()
 	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
+		return fmt.Errorf("failed to get CA certificate path: %w", err)
 	}
-
-	caCertPath := filepath.Join(homeDir, ".local", "share", "caddy", "pki", "authorities", "local", "root.crt")
 
 	// Check if the certificate exists
 	if _, err := os.Stat(caCertPath); os.IsNotExist(err) {
-		fmt.Println("⚠ Caddy root CA certificate not found")
+		fmt.Println("⚠ CA certificate not found")
 		fmt.Printf("  Expected location: %s\n", caCertPath)
 		fmt.Println()
 		fmt.Println("The certificate will be created automatically when you start the daemon.")
 		fmt.Println("After starting the daemon, run 'faa setup' again to install the certificate.")
+		fmt.Println()
+		fmt.Println("You can check the certificate path with: faa ca-path")
 		return nil
 	}
 
@@ -552,25 +554,25 @@ func checkCATrustDarwin() error {
 	fmt.Println()
 	fmt.Println("Checking CA certificate trust...")
 
-	// Get Caddy CA certificate path
-	homeDir, err := os.UserHomeDir()
+	// Get CA certificate path from proxy package
+	caCertPath, err := proxy.GetCAPath()
 	if err != nil {
-		return fmt.Errorf("failed to get home directory: %w", err)
+		return fmt.Errorf("failed to get CA certificate path: %w", err)
 	}
-
-	caCertPath := filepath.Join(homeDir, ".local", "share", "caddy", "pki", "authorities", "local", "root.crt")
 
 	// Check if the certificate exists
 	if _, err := os.Stat(caCertPath); os.IsNotExist(err) {
-		fmt.Println("⚠ Caddy root CA certificate not found")
+		fmt.Println("⚠ CA certificate not found")
 		fmt.Printf("  Expected location: %s\n", caCertPath)
 		fmt.Println()
 		fmt.Println("The certificate will be created automatically when the daemon starts.")
 		fmt.Println("After starting the daemon, run 'faa setup' again to install the certificate.")
+		fmt.Println()
+		fmt.Println("You can check the certificate path with: faa ca-path")
 		return nil
 	}
 
-	fmt.Printf("✓ Found Caddy root CA: %s\n", caCertPath)
+	fmt.Printf("✓ Found CA certificate: %s\n", caCertPath)
 
 	// Check if certificate is already trusted
 	if isCertificateTrustedDarwin(caCertPath) {

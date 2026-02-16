@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -202,4 +203,44 @@ type projectInfo struct {
 
 func (p *projectInfo) Host() string {
 	return p.Name
+}
+
+// TestCAPathCommand tests the ca-path command
+func TestCAPathCommand(t *testing.T) {
+	// Test with no arguments
+	exitCode := handleCAPath([]string{})
+	if exitCode != ExitSuccess {
+		t.Errorf("handleCAPath() with no args should return ExitSuccess, got %d", exitCode)
+	}
+
+	// The command should have printed the path or a message about the cert not being exported yet
+	// We can't test the actual output without capturing stdout, but we can verify it doesn't crash
+}
+
+// TestCAPathHelp tests the help flag for ca-path command
+func TestCAPathHelp(t *testing.T) {
+	// Create a pipe to capture stdout
+	oldStdout := os.Stdout
+	r, w, _ := os.Pipe()
+	os.Stdout = w
+
+	// Call help
+	printSubcommandHelp("ca-path")
+
+	// Restore stdout
+	w.Close()
+	os.Stdout = oldStdout
+
+	// Read output
+	var buf [4096]byte
+	n, _ := r.Read(buf[:])
+	output := string(buf[:n])
+
+	// Check that output contains expected text
+	if !strings.Contains(output, "ca-path") {
+		t.Error("Help output should contain 'ca-path'")
+	}
+	if !strings.Contains(output, "CA certificate") {
+		t.Error("Help output should contain 'CA certificate'")
+	}
 }
