@@ -2,6 +2,7 @@ package setup
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"net"
 	"os"
@@ -312,5 +313,5 @@ func filesAreEqual(path1, path2 string) bool {
 		return false
 	}
 
-	return string(content1) == string(content2)
+	return bytes.Equal(content1, content2)
 }

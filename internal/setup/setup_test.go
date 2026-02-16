@@ -36,13 +36,13 @@ func TestFilesAreEqual(t *testing.T) {
 	content1 := []byte("test content")
 	content2 := []byte("different content")
 
-	if err := os.WriteFile(file1, content1, 0644); err != nil {
+	if err := os.WriteFile(file1, content1, 0o644); err != nil {
 		t.Fatalf("Failed to write file1: %v", err)
 	}
-	if err := os.WriteFile(file2, content1, 0644); err != nil {
+	if err := os.WriteFile(file2, content1, 0o644); err != nil {
 		t.Fatalf("Failed to write file2: %v", err)
 	}
-	if err := os.WriteFile(file3, content2, 0644); err != nil {
+	if err := os.WriteFile(file3, content2, 0o644); err != nil {
 		t.Fatalf("Failed to write file3: %v", err)
 	}
 
