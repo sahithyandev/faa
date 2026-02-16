@@ -1,3 +1,32 @@
+// Package proxy provides an embedded Caddy v2 proxy server with dynamic route configuration.
+//
+// The proxy package enables running a fully-featured reverse proxy with:
+//   - Automatic HTTP to HTTPS redirection
+//   - Internal CA for TLS certificate generation
+//   - Dynamic route management without restarts
+//   - Thread-safe operations
+//
+// Example usage:
+//
+//	p := proxy.New()
+//	ctx := context.Background()
+//
+//	// Set up routes
+//	routes := map[string]int{
+//	    "app.local": 3000,
+//	    "api.local": 3001,
+//	}
+//	p.ApplyRoutes(routes)
+//
+//	// Start the proxy
+//	if err := p.Start(ctx); err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer p.Stop()
+//
+// For testing with unprivileged ports, use NewWithPorts():
+//
+//	p := proxy.NewWithPorts(8080, 8443)
 package proxy
 
 import (
