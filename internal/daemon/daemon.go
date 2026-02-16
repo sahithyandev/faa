@@ -133,12 +133,13 @@ func (d *Daemon) loadAndApplyRoutes() error {
 
 // tryExportCA attempts to export the CA certificate after routes are applied
 func (d *Daemon) tryExportCA() {
-	// Wait a bit for Caddy to generate the CA after routes are applied
-	time.Sleep(500 * time.Millisecond)
-	
 	// Try to export with retry logic
-	if err := proxy.ExportCAWithRetry(5, 500*time.Millisecond); err != nil {
+	// Quick retries since Caddy generates certificates almost immediately after routes are applied
+	// 3 attempts with 300ms delays = max 900ms, which should be sufficient
+	if err := proxy.ExportCAWithRetry(3, 300*time.Millisecond); err != nil {
 		// Log warning but don't fail - CA export is not critical for daemon operation
+		// Failures are logged to stderr and not surfaced to caller as this is a
+		// best-effort operation that can be retried by running 'faa ca-path' later
 		fmt.Fprintf(os.Stderr, "Warning: Failed to export CA certificate: %v\n", err)
 	}
 }
