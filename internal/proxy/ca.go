@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 // GetCAPath returns the deterministic path where the Caddy CA certificate
@@ -97,4 +98,34 @@ func ExportCA() error {
 	}
 
 	return nil
+}
+
+// TryExportCA attempts to export the CA certificate, silently ignoring ALL errors.
+// This is useful for best-effort scenarios where CA export is desired but not required.
+// All failures (missing CA, permission errors, etc.) are silently ignored.
+func TryExportCA() {
+	if err := ExportCA(); err != nil {
+		// Silently ignore all errors - CA export is a best-effort operation
+	}
+}
+
+// ExportCAWithRetry attempts to export the CA certificate with retry logic.
+// It waits for Caddy to generate the CA certificate if it doesn't exist yet.
+// This should be called after routes are applied to give Caddy time to generate certs.
+func ExportCAWithRetry(maxAttempts int, delayBetweenAttempts time.Duration) error {
+	var lastErr error
+	
+	for i := 0; i < maxAttempts; i++ {
+		if i > 0 {
+			time.Sleep(delayBetweenAttempts)
+		}
+		
+		err := ExportCA()
+		if err == nil {
+			return nil
+		}
+		lastErr = err
+	}
+	
+	return fmt.Errorf("failed to export CA after %d attempts: %w", maxAttempts, lastErr)
 }

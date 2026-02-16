@@ -16,6 +16,14 @@ import (
 	"github.com/sahithyandev/faa/internal/proxy"
 )
 
+const (
+	// maxCAExportAttempts is the number of times to retry CA certificate export
+	maxCAExportAttempts = 3
+	
+	// caExportRetryDelay is the delay between CA certificate export retry attempts
+	caExportRetryDelay = 300 * time.Millisecond
+)
+
 // Daemon represents the daemon process that manages routes and processes
 type Daemon struct {
 	registry *Registry
@@ -122,9 +130,25 @@ func (d *Daemon) loadAndApplyRoutes() error {
 		if err := d.proxy.ApplyRoutes(routes); err != nil {
 			return fmt.Errorf("failed to apply routes to proxy: %w", err)
 		}
+		
+		// Export CA after applying routes
+		// Routes application triggers Caddy to generate TLS certificates and CA
+		d.tryExportCA()
 	}
 
 	return nil
+}
+
+// tryExportCA attempts to export the CA certificate after routes are applied
+func (d *Daemon) tryExportCA() {
+	// Try to export with retry logic
+	// Quick retries since Caddy generates certificates almost immediately after routes are applied
+	if err := proxy.ExportCAWithRetry(maxCAExportAttempts, caExportRetryDelay); err != nil {
+		// Log warning but don't fail - CA export is not critical for daemon operation
+		// Failures are logged to stderr and not surfaced to caller as this is a
+		// best-effort operation that can be retried by running 'faa ca-path' later
+		fmt.Fprintf(os.Stderr, "Warning: Failed to export CA certificate: %v\n", err)
+	}
 }
 
 // removeSocket removes the socket file if it exists
@@ -335,6 +359,9 @@ func (d *Daemon) handleUpsertRoute(req *Request) *Response {
 		if err := d.proxy.ApplyRoutes(routes); err != nil {
 			return NewErrorResponse(fmt.Errorf("failed to apply routes to proxy: %w", err))
 		}
+		
+		// Export CA after applying routes (in background to not block the response)
+		go d.tryExportCA()
 	}
 
 	resp, _ := NewSuccessResponse(nil)
