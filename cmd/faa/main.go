@@ -282,7 +282,7 @@ func ensureDaemonRunning() error {
 		time.Sleep(daemonStartupRetryDelay)
 	}
 
-	return fmt.Errorf("daemon failed to start within %v", daemonStartupTimeout)
+	return fmt.Errorf("daemon failed to start within %v. The daemon may require elevated permissions. Try running 'faa setup' to configure permissions, or start the daemon manually with 'faa daemon'", daemonStartupTimeout)
 }
 
 func handleRun(args []string) int {
