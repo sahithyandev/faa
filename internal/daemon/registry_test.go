@@ -616,12 +616,12 @@ func TestNormalizeHost(t *testing.T) {
 			expected: "blog.local",
 		},
 		{
-			name:     "host with multiple dots",
+			name:     "host with hyphen",
 			input:    "my-app",
 			expected: "my-app.local",
 		},
 		{
-			name:     "host with multiple dots already has .local",
+			name:     "host with .local suffix already",
 			input:    "my-app.local",
 			expected: "my-app.local",
 		},
