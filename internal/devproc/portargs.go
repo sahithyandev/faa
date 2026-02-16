@@ -6,8 +6,8 @@ import "fmt"
 // and returns the modified arguments with "--port <port>" appended.
 // It also returns an environment map with PORT set to the port value.
 func InjectPort(command []string, port int) ([]string, map[string]string) {
-	if len(command) == 0 {
-		return command, nil
+	if command == nil || len(command) == 0 {
+		return nil, nil
 	}
 
 	// Create new args slice with port flag appended

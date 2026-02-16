@@ -67,9 +67,9 @@ func TestInjectPort_Basic(t *testing.T) {
 func TestInjectPort_EmptyCommand(t *testing.T) {
 	gotArgs, gotEnv := InjectPort([]string{}, 3000)
 
-	// Should return empty args and nil env for empty command
-	if len(gotArgs) != 0 {
-		t.Errorf("InjectPort([]string{}, 3000) args = %v, want empty slice", gotArgs)
+	// Should return nil for both args and env for empty command
+	if gotArgs != nil {
+		t.Errorf("InjectPort([]string{}, 3000) args = %v, want nil", gotArgs)
 	}
 	if gotEnv != nil {
 		t.Errorf("InjectPort([]string{}, 3000) env = %v, want nil", gotEnv)
@@ -124,16 +124,16 @@ func TestInjectPort_PortValues(t *testing.T) {
 			if len(gotArgs) < 2 {
 				t.Fatalf("InjectPort() returned too few args: %v", gotArgs)
 			}
-			wantPortArg := gotArgs[len(gotArgs)-1]
-			wantPortFlag := gotArgs[len(gotArgs)-2]
+			gotPortFlag := gotArgs[len(gotArgs)-2]
+			gotPortArg := gotArgs[len(gotArgs)-1]
 
-			if wantPortFlag != "--port" {
-				t.Errorf("InjectPort() port flag = %v, want --port", wantPortFlag)
+			if gotPortFlag != "--port" {
+				t.Errorf("InjectPort() port flag = %v, want --port", gotPortFlag)
 			}
 
 			expectedPortStr := fmt.Sprintf("%d", tt.port)
-			if wantPortArg != expectedPortStr {
-				t.Errorf("InjectPort() port value = %v, want %v", wantPortArg, expectedPortStr)
+			if gotPortArg != expectedPortStr {
+				t.Errorf("InjectPort() port value = %v, want %v", gotPortArg, expectedPortStr)
 			}
 
 			// Verify environment
