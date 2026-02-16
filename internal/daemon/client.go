@@ -131,7 +131,7 @@ func (c *Client) GetProcess(projectRoot string) (*Process, error) {
 	}
 
 	// If data is null or empty, no process found
-	if resp.Data == nil || len(resp.Data) == 0 || string(resp.Data) == "null" {
+	if len(resp.Data) == 0 || string(resp.Data) == "null" {
 		return nil, nil
 	}
 

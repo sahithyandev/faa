@@ -294,7 +294,9 @@ func handleRun(args []string) int {
 	}); err != nil {
 		printError("Failed to register process: %v", err)
 		// Try to stop the process we just started
-		proc.Stop()
+		if stopErr := proc.Stop(); stopErr != nil {
+			fmt.Fprintf(os.Stderr, "Warning: Failed to stop process after registration failure: %v\n", stopErr)
+		}
 		return ExitError
 	}
 	
@@ -306,7 +308,7 @@ func handleRun(args []string) int {
 	
 	// Clear process from registry
 	if clearErr := client.ClearProcess(proj.Root); clearErr != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Failed to clear process from registry: %v\n", clearErr)
+		fmt.Fprintf(os.Stderr, "Warning: Failed to clear process from registry during cleanup: %v\n", clearErr)
 	}
 	
 	// Return appropriate exit code
