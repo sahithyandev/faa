@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"os"
+
+	"github.com/sahithyandev/faa/internal/daemon"
 )
 
 const (
@@ -139,8 +141,20 @@ func handleSetup(args []string) int {
 }
 
 func handleDaemon(args []string) int {
-	fmt.Println("Daemon command with args:", args)
-	// TODO: Dispatch to internal/daemon package
+	// Create registry
+	registry, err := daemon.NewRegistry()
+	if err != nil {
+		printError("Failed to create registry: %v", err)
+		return ExitError
+	}
+
+	// Create and start daemon
+	d := daemon.New(registry)
+	if err := d.Start(); err != nil {
+		printError("Failed to start daemon: %v", err)
+		return ExitError
+	}
+
 	return ExitSuccess
 }
 
