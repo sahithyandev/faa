@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
@@ -73,6 +74,20 @@ func (r *Registry) processesPath() string {
 	return filepath.Join(r.configDir, "processes.json")
 }
 
+// normalizeHost ensures a hostname has the .local suffix
+// If the host already ends with .local, it returns it unchanged
+// Otherwise, it appends .local to the host
+// Empty hostnames are returned unchanged to avoid creating invalid ".local" hostnames
+func normalizeHost(host string) string {
+	if host == "" {
+		return host
+	}
+	if strings.HasSuffix(host, ".local") {
+		return host
+	}
+	return host + ".local"
+}
+
 // loadRoutes loads routes from routes.json
 func (r *Registry) loadRoutes() (map[string]int, error) {
 	routes := make(map[string]int)
@@ -91,8 +106,16 @@ func (r *Registry) loadRoutes() (map[string]int, error) {
 		return routes, nil
 	}
 
-	if err := json.Unmarshal(data, &routes); err != nil {
+	var rawRoutes map[string]int
+	if err := json.Unmarshal(data, &rawRoutes); err != nil {
 		return nil, fmt.Errorf("failed to parse routes.json: %w", err)
+	}
+
+	// Normalize all hostnames to ensure they have .local suffix
+	// This fixes legacy entries that might not have .local
+	for host, port := range rawRoutes {
+		normalizedHost := normalizeHost(host)
+		routes[normalizedHost] = port
 	}
 
 	return routes, nil
@@ -174,7 +197,9 @@ func (r *Registry) UpsertRoute(host string, port int) error {
 		return err
 	}
 
-	routes[host] = port
+	// Ensure host has .local suffix
+	normalizedHost := normalizeHost(host)
+	routes[normalizedHost] = port
 	return r.saveRoutes(routes)
 }
 
@@ -185,7 +210,9 @@ func (r *Registry) GetRoute(host string) (int, error) {
 		return 0, err
 	}
 
-	port, ok := routes[host]
+	// Ensure host has .local suffix when looking up
+	normalizedHost := normalizeHost(host)
+	port, ok := routes[normalizedHost]
 	if !ok {
 		return 0, nil
 	}

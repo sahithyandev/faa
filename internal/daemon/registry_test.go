@@ -598,3 +598,163 @@ func TestIsProcessAlive(t *testing.T) {
 		t.Errorf("Fake PID %d should not be alive", fakePID)
 	}
 }
+
+func TestNormalizeHost(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "host without .local suffix",
+			input:    "blog",
+			expected: "blog.local",
+		},
+		{
+			name:     "host with .local suffix",
+			input:    "blog.local",
+			expected: "blog.local",
+		},
+		{
+			name:     "host with hyphen",
+			input:    "my-app",
+			expected: "my-app.local",
+		},
+		{
+			name:     "host with .local suffix already",
+			input:    "my-app.local",
+			expected: "my-app.local",
+		},
+		{
+			name:     "empty host",
+			input:    "",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := normalizeHost(tt.input)
+			if result != tt.expected {
+				t.Errorf("normalizeHost(%q) = %q, want %q", tt.input, result, tt.expected)
+			}
+		})
+	}
+}
+
+func TestLoadRoutesWithNormalization(t *testing.T) {
+	// Use a temporary directory for testing
+	tmpDir := t.TempDir()
+
+	// Override home directory for testing
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+	os.Setenv("HOME", tmpDir)
+
+	// Create registry
+	reg, err := NewRegistry()
+	if err != nil {
+		t.Fatalf("NewRegistry() failed: %v", err)
+	}
+
+	// Create routes file with legacy entries (without .local suffix)
+	routesFile := reg.routesPath()
+	legacyRoutes := `{
+  "blog": 12345,
+  "app.local": 23456,
+  "api": 34567
+}`
+	if err := os.WriteFile(routesFile, []byte(legacyRoutes), 0644); err != nil {
+		t.Fatalf("Failed to write legacy routes file: %v", err)
+	}
+
+	// Load routes - they should be normalized
+	routes, err := reg.loadRoutes()
+	if err != nil {
+		t.Fatalf("loadRoutes() failed: %v", err)
+	}
+
+	// Verify all hosts have .local suffix
+	expectedRoutes := map[string]int{
+		"blog.local": 12345,
+		"app.local":  23456,
+		"api.local":  34567,
+	}
+
+	if len(routes) != len(expectedRoutes) {
+		t.Errorf("loadRoutes() returned %d routes, want %d", len(routes), len(expectedRoutes))
+	}
+
+	for host, expectedPort := range expectedRoutes {
+		if port, ok := routes[host]; !ok {
+			t.Errorf("loadRoutes() missing host %q", host)
+		} else if port != expectedPort {
+			t.Errorf("loadRoutes() host %q = port %d, want %d", host, port, expectedPort)
+		}
+	}
+
+	// Verify the original hosts without .local don't exist
+	if _, ok := routes["blog"]; ok {
+		t.Error("loadRoutes() should not contain unnormalized host 'blog'")
+	}
+	if _, ok := routes["api"]; ok {
+		t.Error("loadRoutes() should not contain unnormalized host 'api'")
+	}
+}
+
+func TestUpsertRouteNormalization(t *testing.T) {
+	// Use a temporary directory for testing
+	tmpDir := t.TempDir()
+
+	// Override home directory for testing
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+	os.Setenv("HOME", tmpDir)
+
+	// Create registry
+	reg, err := NewRegistry()
+	if err != nil {
+		t.Fatalf("NewRegistry() failed: %v", err)
+	}
+
+	// Upsert a route without .local suffix
+	if err := reg.UpsertRoute("myapp", 12345); err != nil {
+		t.Fatalf("UpsertRoute() failed: %v", err)
+	}
+
+	// Verify it's stored with .local suffix
+	port, err := reg.GetRoute("myapp")
+	if err != nil {
+		t.Fatalf("GetRoute() failed: %v", err)
+	}
+
+	if port != 12345 {
+		t.Errorf("GetRoute('myapp') = %d, want 12345", port)
+	}
+
+	// Also verify with explicit .local suffix
+	port2, err := reg.GetRoute("myapp.local")
+	if err != nil {
+		t.Fatalf("GetRoute('myapp.local') failed: %v", err)
+	}
+
+	if port2 != 12345 {
+		t.Errorf("GetRoute('myapp.local') = %d, want 12345", port2)
+	}
+
+	// Load routes directly and verify the key is normalized
+	routes, err := reg.loadRoutes()
+	if err != nil {
+		t.Fatalf("loadRoutes() failed: %v", err)
+	}
+
+	if _, ok := routes["myapp"]; ok {
+		t.Error("Route should not be stored with unnormalized host 'myapp'")
+	}
+
+	if port, ok := routes["myapp.local"]; !ok {
+		t.Error("Route should be stored with normalized host 'myapp.local'")
+	} else if port != 12345 {
+		t.Errorf("Route 'myapp.local' = port %d, want 12345", port)
+	}
+}
