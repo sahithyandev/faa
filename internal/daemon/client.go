@@ -163,3 +163,72 @@ func (c *Client) ClearProcess(projectRoot string) error {
 
 	return nil
 }
+
+// Status retrieves the current daemon status including routes and processes
+func (c *Client) Status() (*StatusResponseData, error) {
+	req, err := NewRequest(MessageTypeStatus, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.sendRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if !resp.Ok {
+		return nil, fmt.Errorf("status failed: %s", resp.Error)
+	}
+
+	var status StatusResponseData
+	if err := json.Unmarshal(resp.Data, &status); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal status: %w", err)
+	}
+
+	return &status, nil
+}
+
+// Stop sends a stop request to the daemon
+func (c *Client) Stop(clearRoutes bool) error {
+	req, err := NewRequest(MessageTypeStop, &StopData{
+		ClearRoutes: clearRoutes,
+	})
+	if err != nil {
+		return err
+	}
+
+	resp, err := c.sendRequest(req)
+	if err != nil {
+		return err
+	}
+
+	if !resp.Ok {
+		return fmt.Errorf("stop failed: %s", resp.Error)
+	}
+
+	return nil
+}
+
+// ListRoutes retrieves all routes from the daemon
+func (c *Client) ListRoutes() ([]Route, error) {
+	req, err := NewRequest(MessageTypeListRoutes, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	resp, err := c.sendRequest(req)
+	if err != nil {
+		return nil, err
+	}
+
+	if !resp.Ok {
+		return nil, fmt.Errorf("list_routes failed: %s", resp.Error)
+	}
+
+	var routes []Route
+	if err := json.Unmarshal(resp.Data, &routes); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal routes: %w", err)
+	}
+
+	return routes, nil
+}

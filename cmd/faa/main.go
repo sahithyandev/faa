@@ -82,9 +82,9 @@ func printUsage() {
 	fmt.Println("  setup         Setup the development environment")
 	fmt.Println("  daemon        Start the daemon process")
 	fmt.Println("  run           Run a command or project (default)")
-	fmt.Println("  status        Show status of running projects")
-	fmt.Println("  stop          Stop a running project")
-	fmt.Println("  routes        Display route information")
+	fmt.Println("  status        Show daemon status, routes, and running processes")
+	fmt.Println("  stop          Stop the daemon")
+	fmt.Println("  routes        Display configured routes")
 	fmt.Println()
 	fmt.Println("If <command> is not a recognized subcommand, it is treated as:")
 	fmt.Println("  faa run -- <command> [args...]")
@@ -123,12 +123,13 @@ func printSubcommandHelp(subcommand string) {
 		fmt.Println("Options:")
 		fmt.Println("  -h, --help    Show this help message")
 	case "stop":
-		fmt.Println("Usage: faa stop [options] [project]")
+		fmt.Println("Usage: faa stop [options]")
 		fmt.Println()
-		fmt.Println("Stop a running project.")
+		fmt.Println("Stop the daemon.")
 		fmt.Println()
 		fmt.Println("Options:")
-		fmt.Println("  -h, --help    Show this help message")
+		fmt.Println("  -h, --help         Show this help message")
+		fmt.Println("  --clear-routes     Clear all routes when stopping")
 	case "routes":
 		fmt.Println("Usage: faa routes [options]")
 		fmt.Println()
@@ -322,19 +323,107 @@ func handleRun(args []string) int {
 }
 
 func handleStatus(args []string) int {
-	fmt.Println("Status command with args:", args)
-	// TODO: Dispatch to internal package
+	// Connect to daemon
+	client, err := daemon.Connect()
+	if err != nil {
+		printError("Daemon is not running. Start it with: faa daemon")
+		return ExitError
+	}
+	defer client.Close()
+
+	// Get status from daemon
+	status, err := client.Status()
+	if err != nil {
+		printError("Failed to get status: %v", err)
+		return ExitError
+	}
+
+	// Print daemon status
+	fmt.Println("Daemon Status: Running")
+	fmt.Println()
+
+	// Print routes
+	fmt.Println("Routes:")
+	if len(status.Routes) == 0 {
+		fmt.Println("  No routes configured")
+	} else {
+		for _, route := range status.Routes {
+			fmt.Printf("  %s -> localhost:%d\n", route.Host, route.Port)
+		}
+	}
+	fmt.Println()
+
+	// Print processes
+	fmt.Println("Running Processes:")
+	if len(status.Processes) == 0 {
+		fmt.Println("  No processes running")
+	} else {
+		for _, proc := range status.Processes {
+			fmt.Printf("  PID %d: %s (https://%s, port %d)\n", 
+				proc.PID, proc.ProjectRoot, proc.Host, proc.Port)
+		}
+	}
+
 	return ExitSuccess
 }
 
 func handleStop(args []string) int {
-	fmt.Println("Stop command with args:", args)
-	// TODO: Dispatch to internal package
+	// Parse flags
+	clearRoutes := false
+	for _, arg := range args {
+		if arg == "--clear-routes" {
+			clearRoutes = true
+		}
+	}
+
+	// Connect to daemon
+	client, err := daemon.Connect()
+	if err != nil {
+		printError("Daemon is not running")
+		return ExitError
+	}
+	defer client.Close()
+
+	// Send stop request
+	if err := client.Stop(clearRoutes); err != nil {
+		printError("Failed to stop daemon: %v", err)
+		return ExitError
+	}
+
+	fmt.Println("Daemon shutdown requested")
+	if clearRoutes {
+		fmt.Println("Routes will be cleared")
+	}
+
 	return ExitSuccess
 }
 
 func handleRoutes(args []string) int {
-	fmt.Println("Routes command with args:", args)
-	// TODO: Dispatch to internal package
+	// Connect to daemon
+	client, err := daemon.Connect()
+	if err != nil {
+		printError("Daemon is not running. Start it with: faa daemon")
+		return ExitError
+	}
+	defer client.Close()
+
+	// Get routes from daemon
+	routes, err := client.ListRoutes()
+	if err != nil {
+		printError("Failed to get routes: %v", err)
+		return ExitError
+	}
+
+	// Print routes
+	if len(routes) == 0 {
+		fmt.Println("No routes configured")
+		return ExitSuccess
+	}
+
+	fmt.Println("Configured Routes:")
+	for _, route := range routes {
+		fmt.Printf("  %s -> localhost:%d\n", route.Host, route.Port)
+	}
+
 	return ExitSuccess
 }
