@@ -93,8 +93,8 @@ func normalizeName(name string) string {
 	return name
 }
 
-// Host returns the hostname-safe label for the project
+// Host returns the hostname-safe label for the project with .local TLD
 // This is the normalized project name suitable for use as a hostname
 func (p *Project) Host() string {
-	return p.Name
+	return p.Name + ".local"
 }
