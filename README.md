@@ -17,7 +17,7 @@ Working Features:
 - macOS setup command with LaunchDaemon and CA trust support
 
 Known Limitations:
-- Configuration directory is hardcoded to `~/.config/faa` (except on macOS with LaunchDaemon where socket is at `/var/run/faa`)
+- Configuration directory is hardcoded to `~/.config/faa`. On macOS with LaunchDaemon, the socket is at `/var/run/faa` instead of the config directory.
 
 ## Key Features
 

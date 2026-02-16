@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -98,7 +99,7 @@ func TestGenerateLaunchDaemonPlist(t *testing.T) {
 	}
 	
 	for _, expected := range expectedStrings {
-		if !contains(plist, expected) {
+		if !strings.Contains(plist, expected) {
 			t.Errorf("Expected plist to contain %q", expected)
 		}
 	}
@@ -140,18 +141,4 @@ func TestRun(t *testing.T) {
 			t.Error("Expected error for unsupported platform")
 		}
 	}
-}
-
-// Helper function to check if a string contains a substring
-func contains(s, substr string) bool {
-	return len(s) >= len(substr) && (s == substr || len(s) > len(substr) && containsHelper(s, substr))
-}
-
-func containsHelper(s, substr string) bool {
-	for i := 0; i <= len(s)-len(substr); i++ {
-		if s[i:i+len(substr)] == substr {
-			return true
-		}
-	}
-	return false
 }

@@ -602,7 +602,7 @@ func checkCATrustDarwin() error {
 
 	// Install certificate using security command
 	fmt.Println("Installing CA certificate to System keychain...")
-	cmd := exec.Command("sudo", "security", "add-trusted-cert", 
+	cmd := exec.Command("sudo", "security", "add-trusted-cert",
 		"-d", // Add to admin cert store
 		"-r", "trustRoot", // Set trust policy to root
 		"-k", "/Library/Keychains/System.keychain", // System keychain
@@ -632,9 +632,9 @@ func isCertificateTrustedDarwin(certPath string) bool {
 	}
 
 	subject := strings.TrimSpace(string(output))
-	
+
 	// Search for certificate in System keychain
-	cmd = exec.Command("security", "find-certificate", "-a", "-c", "Caddy Local Authority", 
+	cmd = exec.Command("security", "find-certificate", "-a", "-c", "Caddy Local Authority",
 		"/Library/Keychains/System.keychain")
 	output, err = cmd.CombinedOutput()
 	if err != nil {
