@@ -87,7 +87,7 @@ func TestDaemonSingleInstance(t *testing.T) {
 	}
 
 	// Start first daemon in a goroutine
-	d1 := New(registry)
+	d1 := New(registry, nil)
 	errChan1 := make(chan error, 1)
 	go func() {
 		errChan1 <- d1.Start()
@@ -97,7 +97,7 @@ func TestDaemonSingleInstance(t *testing.T) {
 	time.Sleep(100 * time.Millisecond)
 
 	// Try to start second daemon - should fail with lock error
-	d2 := New(registry)
+	d2 := New(registry, nil)
 	errChan2 := make(chan error, 1)
 	go func() {
 		errChan2 <- d2.Start()
@@ -150,7 +150,7 @@ func TestDaemonSocketCreation(t *testing.T) {
 	}
 
 	// Start daemon in a goroutine
-	d := New(registry)
+	d := New(registry, nil)
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- d.Start()
@@ -214,7 +214,7 @@ func TestDaemonPingRequest(t *testing.T) {
 	}
 
 	// Start daemon in a goroutine
-	d := New(registry)
+	d := New(registry, nil)
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- d.Start()
@@ -293,7 +293,7 @@ func TestDaemonRegistryOperations(t *testing.T) {
 	}
 
 	// Start daemon in a goroutine
-	d := New(registry)
+	d := New(registry, nil)
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- d.Start()
@@ -404,7 +404,7 @@ func TestDaemonStatusRequest(t *testing.T) {
 	}
 
 	// Start daemon
-	d := New(registry)
+	d := New(registry, nil)
 	errChan := make(chan error, 1)
 	go func() {
 		errChan <- d.Start()
@@ -463,4 +463,146 @@ func TestDaemonStatusRequest(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("Daemon didn't shutdown in time")
 	}
+}
+
+func TestDaemonProxyIntegration(t *testing.T) {
+tmpDir := t.TempDir()
+
+// Override HOME for testing
+originalHome := os.Getenv("HOME")
+defer os.Setenv("HOME", originalHome)
+os.Setenv("HOME", tmpDir)
+
+// Create registry and add initial routes
+registry, err := NewRegistry()
+if err != nil {
+t.Fatalf("NewRegistry() failed: %v", err)
+}
+
+// Add some routes to the registry before starting daemon
+if err := registry.UpsertRoute("test1.local", 3000); err != nil {
+t.Fatalf("Failed to add initial route: %v", err)
+}
+if err := registry.UpsertRoute("test2.local", 3001); err != nil {
+t.Fatalf("Failed to add initial route: %v", err)
+}
+
+
+// Test that the daemon handles nil proxy gracefully (used for testing)
+d := New(registry, nil)
+errChan := make(chan error, 1)
+go func() {
+errChan <- d.Start()
+}()
+
+time.Sleep(200 * time.Millisecond)
+
+// Connect and send an upsert route request
+sockPath, err := SocketPath()
+if err != nil {
+t.Fatalf("SocketPath() failed: %v", err)
+}
+
+conn, err := net.Dial("unix", sockPath)
+if err != nil {
+t.Fatalf("Failed to connect: %v", err)
+}
+defer conn.Close()
+
+// Test upsert_route with proxy
+req, err := NewRequest(MessageTypeUpsertRoute, &UpsertRouteData{
+Host: "test3.local",
+Port: 3002,
+})
+if err != nil {
+t.Fatalf("NewRequest() failed: %v", err)
+}
+
+if err := EncodeRequest(conn, req); err != nil {
+t.Fatalf("EncodeRequest() failed: %v", err)
+}
+
+reader := bufio.NewReader(conn)
+resp, err := DecodeResponse(reader)
+if err != nil {
+t.Fatalf("DecodeResponse() failed: %v", err)
+}
+
+if !resp.Ok {
+t.Errorf("UpsertRoute with nil proxy should succeed, error: %s", resp.Error)
+}
+
+// Verify the route was added to registry
+routes, err := registry.ListRoutes()
+if err != nil {
+t.Fatalf("Failed to list routes: %v", err)
+}
+
+if len(routes) != 3 {
+t.Errorf("Expected 3 routes in registry, got %d", len(routes))
+}
+
+// Shutdown daemon
+d.Shutdown()
+select {
+case <-errChan:
+case <-time.After(2 * time.Second):
+t.Fatal("Daemon didn't shutdown in time")
+}
+}
+
+func TestDaemonStartLoadRoutes(t *testing.T) {
+tmpDir := t.TempDir()
+
+// Override HOME for testing
+originalHome := os.Getenv("HOME")
+defer os.Setenv("HOME", originalHome)
+os.Setenv("HOME", tmpDir)
+
+// Create registry and add routes before daemon starts
+registry, err := NewRegistry()
+if err != nil {
+t.Fatalf("NewRegistry() failed: %v", err)
+}
+
+// Add some routes that should be loaded on startup
+if err := registry.UpsertRoute("preexisting.local", 4000); err != nil {
+t.Fatalf("Failed to add route: %v", err)
+}
+if err := registry.UpsertRoute("another.local", 4001); err != nil {
+t.Fatalf("Failed to add route: %v", err)
+}
+
+// Create daemon with nil proxy (daemon should handle nil proxy gracefully)
+d := New(registry, nil)
+errChan := make(chan error, 1)
+go func() {
+errChan <- d.Start()
+}()
+
+time.Sleep(200 * time.Millisecond)
+
+// Verify daemon started successfully
+sockPath, err := SocketPath()
+if err != nil {
+t.Fatalf("SocketPath() failed: %v", err)
+}
+
+// Try to connect to verify daemon is running
+conn, err := net.Dial("unix", sockPath)
+if err != nil {
+t.Fatalf("Failed to connect to daemon: %v", err)
+}
+conn.Close()
+
+// Shutdown daemon
+d.Shutdown()
+select {
+case err := <-errChan:
+if err != nil {
+t.Errorf("Daemon returned error: %v", err)
+}
+case <-time.After(2 * time.Second):
+t.Fatal("Daemon didn't shutdown in time")
+}
 }

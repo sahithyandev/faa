@@ -13,20 +13,23 @@ import (
 	"time"
 
 	"github.com/sahithyandev/faa/internal/lock"
+	"github.com/sahithyandev/faa/internal/proxy"
 )
 
 // Daemon represents the daemon process that manages routes and processes
 type Daemon struct {
 	registry *Registry
+	proxy    *proxy.Proxy
 	lock     *lock.Lock
 	listener net.Listener
 	shutdown chan struct{}
 }
 
-// New creates a new Daemon instance with the given registry
-func New(registry *Registry) *Daemon {
+// New creates a new Daemon instance with the given registry and proxy
+func New(registry *Registry, proxy *proxy.Proxy) *Daemon {
 	return &Daemon{
 		registry: registry,
+		proxy:    proxy,
 		shutdown: make(chan struct{}),
 	}
 }
@@ -100,6 +103,24 @@ func (d *Daemon) removePidFile() {
 	_ = os.Remove(pidPath)
 }
 
+// loadAndApplyRoutes loads routes from registry and applies them to proxy
+func (d *Daemon) loadAndApplyRoutes() error {
+	// Load routes from registry
+	routes, err := d.registry.loadRoutes()
+	if err != nil {
+		return fmt.Errorf("failed to load routes: %w", err)
+	}
+
+	// Apply routes to proxy
+	if d.proxy != nil {
+		if err := d.proxy.ApplyRoutes(routes); err != nil {
+			return fmt.Errorf("failed to apply routes to proxy: %w", err)
+		}
+	}
+
+	return nil
+}
+
 // removeSocket removes the socket file if it exists
 func (d *Daemon) removeSocket() {
 	sockPath, err := SocketPath()
@@ -122,6 +143,11 @@ func (d *Daemon) Start() error {
 		return err
 	}
 	defer d.removePidFile()
+
+	// Load existing routes from routes.json and apply to proxy
+	if err := d.loadAndApplyRoutes(); err != nil {
+		return fmt.Errorf("failed to load and apply routes: %w", err)
+	}
 
 	// Get socket path
 	sockPath, err := SocketPath()
@@ -274,6 +300,19 @@ func (d *Daemon) handleUpsertRoute(req *Request) *Response {
 
 	if err := d.registry.UpsertRoute(data.Host, data.Port); err != nil {
 		return NewErrorResponse(err)
+	}
+
+	// Load all routes and apply to proxy
+	routes, err := d.registry.loadRoutes()
+	if err != nil {
+		return NewErrorResponse(fmt.Errorf("failed to load routes: %w", err))
+	}
+
+	// Apply routes to proxy
+	if d.proxy != nil {
+		if err := d.proxy.ApplyRoutes(routes); err != nil {
+			return NewErrorResponse(fmt.Errorf("failed to apply routes to proxy: %w", err))
+		}
 	}
 
 	resp, _ := NewSuccessResponse(nil)

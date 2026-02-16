@@ -1,10 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"github.com/sahithyandev/faa/internal/daemon"
+	"github.com/sahithyandev/faa/internal/proxy"
 )
 
 const (
@@ -148,8 +150,19 @@ func handleDaemon(args []string) int {
 		return ExitError
 	}
 
+	// Create proxy
+	p := proxy.New()
+	
+	// Start proxy
+	ctx := context.Background()
+	if err := p.Start(ctx); err != nil {
+		printError("Failed to start proxy: %v", err)
+		return ExitError
+	}
+	defer p.Stop()
+
 	// Create and start daemon
-	d := daemon.New(registry)
+	d := daemon.New(registry, p)
 	if err := d.Start(); err != nil {
 		printError("Failed to start daemon: %v", err)
 		return ExitError

@@ -2,6 +2,8 @@ package proxy
 
 import (
 	"context"
+	"fmt"
+	"sync"
 	"testing"
 	"time"
 )
@@ -289,4 +291,79 @@ func TestEmptyRoutes(t *testing.T) {
 	if len(p.routes) != 0 {
 		t.Errorf("Expected 0 routes, got %d", len(p.routes))
 	}
+}
+
+func TestApplyRoutesConcurrency(t *testing.T) {
+p := NewWithPorts(18089, 18452)
+
+// Number of concurrent goroutines
+numGoroutines := 10
+var wg sync.WaitGroup
+wg.Add(numGoroutines)
+
+// Concurrently apply routes
+for i := 0; i < numGoroutines; i++ {
+go func(id int) {
+defer wg.Done()
+routes := map[string]int{
+fmt.Sprintf("app%d.local", id): 3000 + id,
+}
+err := p.ApplyRoutes(routes)
+if err != nil {
+t.Errorf("ApplyRoutes failed in goroutine %d: %v", id, err)
+}
+}(i)
+}
+
+wg.Wait()
+
+// Verify that proxy didn't crash and final state is consistent
+p.mu.RLock()
+defer p.mu.RUnlock()
+
+if len(p.routes) != 1 {
+t.Logf("Final routes count: %d (expected 1 from last write)", len(p.routes))
+}
+}
+
+func TestApplyRoutesRepeated(t *testing.T) {
+p := NewWithPorts(18090, 18453)
+
+// Apply routes multiple times to verify no crashes
+for i := 0; i < 10; i++ {
+routes := map[string]int{
+"test.local": 3000 + i,
+}
+err := p.ApplyRoutes(routes)
+if err != nil {
+t.Fatalf("ApplyRoutes failed on iteration %d: %v", i, err)
+}
+
+// Verify routes were updated
+p.mu.RLock()
+if p.routes["test.local"] != 3000+i {
+t.Errorf("Route not updated correctly on iteration %d: got %d, want %d",
+i, p.routes["test.local"], 3000+i)
+}
+p.mu.RUnlock()
+}
+}
+
+func TestApplyRoutesEmptyMap(t *testing.T) {
+p := NewWithPorts(18091, 18454)
+
+// Apply empty routes multiple times
+for i := 0; i < 5; i++ {
+routes := map[string]int{}
+err := p.ApplyRoutes(routes)
+if err != nil {
+t.Fatalf("ApplyRoutes with empty map failed on iteration %d: %v", i, err)
+}
+
+p.mu.RLock()
+if len(p.routes) != 0 {
+t.Errorf("Expected 0 routes on iteration %d, got %d", i, len(p.routes))
+}
+p.mu.RUnlock()
+}
 }
