@@ -378,7 +378,10 @@ func (d *Daemon) handleGetProcess(req *Request) *Response {
 	}
 
 	// Clean up stale processes before checking
-	_, _ = d.registry.CleanupStaleProcesses()
+	if _, err := d.registry.CleanupStaleProcesses(); err != nil {
+		// Log the error but continue - this shouldn't fail the request
+		fmt.Fprintf(os.Stderr, "Warning: Failed to cleanup stale processes: %v\n", err)
+	}
 
 	proc, err := d.registry.GetProcess(data.ProjectRoot)
 	if err != nil {
@@ -407,7 +410,10 @@ func (d *Daemon) handleClearProcess(req *Request) *Response {
 // handleStatus handles status requests
 func (d *Daemon) handleStatus(req *Request) *Response {
 	// Clean up stale processes before returning status
-	_, _ = d.registry.CleanupStaleProcesses()
+	if _, err := d.registry.CleanupStaleProcesses(); err != nil {
+		// Log the error but continue - this shouldn't fail the request
+		fmt.Fprintf(os.Stderr, "Warning: Failed to cleanup stale processes: %v\n", err)
+	}
 
 	routes, err := d.registry.ListRoutes()
 	if err != nil {
