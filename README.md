@@ -397,7 +397,7 @@ Common causes:
 
 ### .local domain not resolving
 
-Error: `ping https://my-project.local` or `curl https://my-project.local` fails with "cannot resolve" or "unknown host".
+Error: `ping my-project.local` or `curl https://my-project.local` fails with "cannot resolve" or "unknown host".
 
 Solution:
 
@@ -418,10 +418,11 @@ Important notes:
 Warning: `WARN tls stapling OCSP {"identifiers": ["my-project.local"]}` appears in daemon logs.
 
 This warning is harmless and can be safely ignored. It appears because:
-- Caddy attempts OCSP stapling for all certificates
-- Internal CA certificates don't have OCSP responders
-- The OCSP check is skipped automatically with no impact on functionality
-- Your HTTPS connections work normally despite this warning
+- Caddy logs this message during certificate obtainment when checking for OCSP stapling options
+- Internal CA certificates (used for `.local` domains) don't have OCSP responders
+- OCSP stapling has been disabled in the configuration (`disable_ocsp_stapling: true`)
+- The warning is logged before the actual OCSP stapling is attempted/skipped
+- Your HTTPS connections work normally and no OCSP requests are actually made
 
 No action needed - this is expected behavior for local development with internal CAs.
 
