@@ -7,15 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"testing"
 	"time"
 )
-
-// createTestProxy creates a proxy instance for testing (nil for now since proxy isn't required in tests)
-func createTestProxy() interface{} {
-	return nil
-}
 
 // containsAny checks if s contains any of the substrings
 func containsAny(s string, substrs []string) bool {
@@ -493,15 +487,8 @@ if err := registry.UpsertRoute("test2.local", 3001); err != nil {
 t.Fatalf("Failed to add initial route: %v", err)
 }
 
-// Create a mock proxy that tracks ApplyRoutes calls
-type proxyMock struct {
-mu           sync.RWMutex
-applyCount   int
-lastRoutes   map[string]int
-}
 
-// Since we can't pass a mock due to type constraints, we'll test that
-// the daemon can be created without a proxy and doesn't crash
+// Test that the daemon handles nil proxy gracefully (used for testing)
 d := New(registry, nil)
 errChan := make(chan error, 1)
 go func() {
