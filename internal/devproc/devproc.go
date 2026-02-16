@@ -86,7 +86,7 @@ func Start(command []string, cwd string, env map[string]string) (*Process, error
 }
 
 // Stop terminates the process and its entire process group.
-// It sends SIGTERM first, then SIGKILL if the process doesn't exit within a timeout.
+// It sends SIGTERM to gracefully request termination.
 func (p *Process) Stop() error {
 	p.mu.Lock()
 	defer p.mu.Unlock()

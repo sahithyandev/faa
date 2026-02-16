@@ -336,8 +336,8 @@ func TestStart_ProcessExitCode(t *testing.T) {
 	}
 }
 
-func TestStart_Concurrent(t *testing.T) {
-	// Test starting multiple processes concurrently
+func TestStart_Sequential(t *testing.T) {
+	// Test starting multiple processes sequentially
 	const numProcesses = 5
 	procs := make([]*Process, numProcesses)
 	
