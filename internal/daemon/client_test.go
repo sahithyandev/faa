@@ -217,3 +217,225 @@ func TestClientUpsertRoute(t *testing.T) {
 		t.Fatal("Daemon didn't shutdown in time")
 	}
 }
+
+func TestClientStatus(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Override HOME for testing
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+	os.Setenv("HOME", tmpDir)
+
+	// Create registry
+	registry, err := NewRegistry()
+	if err != nil {
+		t.Fatalf("NewRegistry() failed: %v", err)
+	}
+
+	// Start daemon in a goroutine
+	d := New(registry, nil)
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- d.Start()
+	}()
+
+	// Wait for daemon to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Connect to daemon
+	client, err := Connect()
+	if err != nil {
+		t.Fatalf("Connect() failed: %v", err)
+	}
+	defer client.Close()
+
+	// Add a route and process for testing
+	if err := client.UpsertRoute("test.local", 3000); err != nil {
+		t.Fatalf("UpsertRoute() failed: %v", err)
+	}
+
+	startedAt := time.Now()
+	if err := client.SetProcess(&SetProcessData{
+		ProjectRoot: "/tmp/test-project",
+		PID:         12345,
+		Host:        "test.local",
+		Port:        3000,
+		StartedAt:   startedAt,
+	}); err != nil {
+		t.Fatalf("SetProcess() failed: %v", err)
+	}
+
+	// Test Status
+	status, err := client.Status()
+	if err != nil {
+		t.Fatalf("Status() failed: %v", err)
+	}
+
+	// Verify routes
+	if len(status.Routes) == 0 {
+		t.Error("Expected at least one route in status")
+	}
+	foundRoute := false
+	for _, route := range status.Routes {
+		if route.Host == "test.local" && route.Port == 3000 {
+			foundRoute = true
+			break
+		}
+	}
+	if !foundRoute {
+		t.Error("Expected route not found in status")
+	}
+
+	// Verify processes
+	if len(status.Processes) == 0 {
+		t.Error("Expected at least one process in status")
+	}
+	foundProcess := false
+	for _, proc := range status.Processes {
+		if proc.ProjectRoot == "/tmp/test-project" && proc.PID == 12345 {
+			foundProcess = true
+			break
+		}
+	}
+	if !foundProcess {
+		t.Error("Expected process not found in status")
+	}
+
+	// Shutdown daemon
+	d.Shutdown()
+	select {
+	case err := <-errChan:
+		if err != nil {
+			t.Errorf("Daemon returned error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Daemon didn't shutdown in time")
+	}
+}
+
+func TestClientListRoutes(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Override HOME for testing
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+	os.Setenv("HOME", tmpDir)
+
+	// Create registry
+	registry, err := NewRegistry()
+	if err != nil {
+		t.Fatalf("NewRegistry() failed: %v", err)
+	}
+
+	// Start daemon in a goroutine
+	d := New(registry, nil)
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- d.Start()
+	}()
+
+	// Wait for daemon to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Connect to daemon
+	client, err := Connect()
+	if err != nil {
+		t.Fatalf("Connect() failed: %v", err)
+	}
+	defer client.Close()
+
+	// Add routes
+	if err := client.UpsertRoute("test1.local", 3001); err != nil {
+		t.Fatalf("UpsertRoute() failed: %v", err)
+	}
+	if err := client.UpsertRoute("test2.local", 3002); err != nil {
+		t.Fatalf("UpsertRoute() failed: %v", err)
+	}
+
+	// Test ListRoutes
+	routes, err := client.ListRoutes()
+	if err != nil {
+		t.Fatalf("ListRoutes() failed: %v", err)
+	}
+
+	if len(routes) != 2 {
+		t.Errorf("Expected 2 routes, got %d", len(routes))
+	}
+
+	// Verify both routes exist
+	foundTest1 := false
+	foundTest2 := false
+	for _, route := range routes {
+		if route.Host == "test1.local" && route.Port == 3001 {
+			foundTest1 = true
+		}
+		if route.Host == "test2.local" && route.Port == 3002 {
+			foundTest2 = true
+		}
+	}
+	if !foundTest1 {
+		t.Error("Route test1.local not found")
+	}
+	if !foundTest2 {
+		t.Error("Route test2.local not found")
+	}
+
+	// Shutdown daemon
+	d.Shutdown()
+	select {
+	case err := <-errChan:
+		if err != nil {
+			t.Errorf("Daemon returned error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Daemon didn't shutdown in time")
+	}
+}
+
+func TestClientStop(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Override HOME for testing
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+	os.Setenv("HOME", tmpDir)
+
+	// Create registry
+	registry, err := NewRegistry()
+	if err != nil {
+		t.Fatalf("NewRegistry() failed: %v", err)
+	}
+
+	// Start daemon in a goroutine
+	d := New(registry, nil)
+	errChan := make(chan error, 1)
+	go func() {
+		errChan <- d.Start()
+	}()
+
+	// Wait for daemon to start
+	time.Sleep(100 * time.Millisecond)
+
+	// Connect to daemon
+	client, err := Connect()
+	if err != nil {
+		t.Fatalf("Connect() failed: %v", err)
+	}
+	defer client.Close()
+
+	// Test Stop
+	if err := client.Stop(false); err != nil {
+		t.Fatalf("Stop() failed: %v", err)
+	}
+
+	// Wait for daemon to shutdown
+	select {
+	case err := <-errChan:
+		if err != nil {
+			t.Errorf("Daemon returned error: %v", err)
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Daemon didn't shutdown in time after Stop()")
+	}
+}
+
