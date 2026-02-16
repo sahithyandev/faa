@@ -399,7 +399,8 @@ func TestDaemonStatusRequest(t *testing.T) {
 		t.Fatalf("Failed to add test route: %v", err)
 	}
 
-	if err := registry.SetProcess("/test/project", 12345, "app.local", 3000, time.Now()); err != nil {
+	currentPID := os.Getpid()
+	if err := registry.SetProcess("/test/project", currentPID, "app.local", 3000, time.Now()); err != nil {
 		t.Fatalf("Failed to add test process: %v", err)
 	}
 

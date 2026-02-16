@@ -1,6 +1,7 @@
 package lock
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
@@ -246,5 +247,122 @@ func TestLock_ReleaseAfterAcquire(t *testing.T) {
 		t.Errorf("Acquire() after Release() failed: %v", err)
 	} else {
 		lock2.Release()
+	}
+}
+
+func TestAcquire_StaleLockCleanup(t *testing.T) {
+	tmpDir := t.TempDir()
+	lockPath := filepath.Join(tmpDir, "stale.lock")
+
+	// Write a fake PID to the lock file to simulate a stale lock
+	fakePID := 999999
+	err := os.WriteFile(lockPath, []byte(fmt.Sprintf("%d", fakePID)), 0666)
+	if err != nil {
+		t.Fatalf("Failed to write fake lock file: %v", err)
+	}
+
+	// Try to acquire the lock - should succeed after cleaning up stale lock
+	lock, err := Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("Acquire() should succeed with stale lock, got error: %v", err)
+	}
+	defer lock.Release()
+
+	// Verify the lock was acquired
+	if lock.file == nil {
+		t.Error("Lock file handle is nil")
+	}
+}
+
+func TestAcquire_StaleLockWithCurrentPID(t *testing.T) {
+	tmpDir := t.TempDir()
+	lockPath := filepath.Join(tmpDir, "current.lock")
+
+	// Write current PID to the lock file
+	currentPID := os.Getpid()
+	err := os.WriteFile(lockPath, []byte(fmt.Sprintf("%d", currentPID)), 0666)
+	if err != nil {
+		t.Fatalf("Failed to write lock file: %v", err)
+	}
+
+	// First acquire should work
+	lock1, err := Acquire(lockPath)
+	if err != nil {
+		t.Fatalf("First Acquire() failed: %v", err)
+	}
+	defer lock1.Release()
+
+	// Second acquire should fail because process is still alive
+	lock2, err := Acquire(lockPath)
+	if err == nil {
+		lock2.Release()
+		t.Error("Second Acquire() should fail with live process")
+	}
+}
+
+func TestIsLockStale(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	// Test with fake PID (should be stale)
+	fakeLockPath := filepath.Join(tmpDir, "fake.lock")
+	fakePID := 999999
+	err := os.WriteFile(fakeLockPath, []byte(fmt.Sprintf("%d", fakePID)), 0666)
+	if err != nil {
+		t.Fatalf("Failed to write fake lock file: %v", err)
+	}
+
+	if !isLockStale(fakeLockPath) {
+		t.Error("Lock with fake PID should be stale")
+	}
+
+	// Test with current PID (should not be stale)
+	liveLockPath := filepath.Join(tmpDir, "live.lock")
+	currentPID := os.Getpid()
+	err = os.WriteFile(liveLockPath, []byte(fmt.Sprintf("%d", currentPID)), 0666)
+	if err != nil {
+		t.Fatalf("Failed to write live lock file: %v", err)
+	}
+
+	if isLockStale(liveLockPath) {
+		t.Error("Lock with current PID should not be stale")
+	}
+
+	// Test with invalid content (should not be stale - can't determine)
+	invalidLockPath := filepath.Join(tmpDir, "invalid.lock")
+	err = os.WriteFile(invalidLockPath, []byte("not-a-pid"), 0666)
+	if err != nil {
+		t.Fatalf("Failed to write invalid lock file: %v", err)
+	}
+
+	if isLockStale(invalidLockPath) {
+		t.Error("Lock with invalid content should not be detected as stale")
+	}
+
+	// Test with non-existent file (should not be stale)
+	nonExistentPath := filepath.Join(tmpDir, "nonexistent.lock")
+	if isLockStale(nonExistentPath) {
+		t.Error("Non-existent lock file should not be stale")
+	}
+
+	// Test with zero PID (should be stale)
+	zeroLockPath := filepath.Join(tmpDir, "zero.lock")
+	err = os.WriteFile(zeroLockPath, []byte("0"), 0666)
+	if err != nil {
+		t.Fatalf("Failed to write zero lock file: %v", err)
+	}
+
+	if !isLockStale(zeroLockPath) {
+		t.Error("Lock with zero PID should be stale")
+	}
+
+	// Test with negative PID (should be stale)
+	negativeLockPath := filepath.Join(tmpDir, "negative.lock")
+	err = os.WriteFile(negativeLockPath, []byte("-1"), 0666)
+	if err != nil {
+		t.Fatalf("Failed to write negative lock file: %v", err)
+	}
+
+	if !isLockStale(negativeLockPath) {
+		t.Error("Lock with negative PID should be stale")
 	}
 }
