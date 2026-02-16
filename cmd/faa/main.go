@@ -61,6 +61,8 @@ func run(args []string) int {
 		return handleStop(subArgs)
 	case "routes":
 		return handleRoutes(subArgs)
+	case "ca-path":
+		return handleCAPath(subArgs)
 	default:
 		// Implicit run: faa <cmd> [args...] becomes run -- <cmd> [args...]
 		return handleRun(args)
@@ -86,6 +88,7 @@ func printUsage() {
 	fmt.Println("  status        Show daemon status, routes, and running processes")
 	fmt.Println("  stop          Stop the daemon")
 	fmt.Println("  routes        Display configured routes")
+	fmt.Println("  ca-path       Show the path to the CA certificate")
 	fmt.Println()
 	fmt.Println("If <command> is not a recognized subcommand, it is treated as:")
 	fmt.Println("  faa run -- <command> [args...]")
@@ -138,6 +141,17 @@ func printSubcommandHelp(subcommand string) {
 		fmt.Println()
 		fmt.Println("Options:")
 		fmt.Println("  -h, --help    Show this help message")
+	case "ca-path":
+		fmt.Println("Usage: faa ca-path [options]")
+		fmt.Println()
+		fmt.Println("Show the path to the CA certificate.")
+		fmt.Println()
+		fmt.Println("This command displays the path where the Caddy CA root certificate")
+		fmt.Println("is stored in the faa configuration directory. This certificate can")
+		fmt.Println("be used to trust HTTPS connections to *.local domains.")
+		fmt.Println()
+		fmt.Println("Options:")
+		fmt.Println("  -h, --help    Show this help message")
 	default:
 		// For implicit run commands, show run help
 		printSubcommandHelp("run")
@@ -170,6 +184,19 @@ func handleDaemon(args []string) int {
 		return ExitError
 	}
 	defer p.Stop()
+
+	// Wait a moment for Caddy to initialize and generate CA if needed
+	time.Sleep(2 * time.Second)
+
+	// Export CA certificate to config directory
+	if err := proxy.ExportCA(); err != nil {
+		// Log warning but don't fail - CA might not be generated yet
+		fmt.Fprintf(os.Stderr, "Warning: Failed to export CA certificate: %v\n", err)
+		fmt.Fprintf(os.Stderr, "The CA certificate will be available after Caddy generates it.\n")
+	} else {
+		caPath, _ := proxy.GetCAPath()
+		fmt.Printf("CA certificate exported to: %s\n", caPath)
+	}
 
 	// Create and start daemon
 	d := daemon.New(registry, p)
@@ -428,5 +455,31 @@ func handleRoutes(args []string) int {
 		fmt.Printf("  %s -> localhost:%d\n", route.Host, route.Port)
 	}
 
+	return ExitSuccess
+}
+
+func handleCAPath(args []string) int {
+	// Get the CA certificate path
+	caPath, err := proxy.GetCAPath()
+	if err != nil {
+		printError("Failed to get CA certificate path: %v", err)
+		return ExitError
+	}
+
+	// Check if the certificate exists
+	if _, err := os.Stat(caPath); os.IsNotExist(err) {
+		fmt.Println("CA certificate not yet exported.")
+		fmt.Printf("Path: %s\n", caPath)
+		fmt.Println()
+		fmt.Println("The certificate will be created when you start the daemon.")
+		fmt.Println("After starting the daemon, the certificate will be available at this path.")
+		return ExitSuccess
+	} else if err != nil {
+		printError("Failed to check CA certificate: %v", err)
+		return ExitError
+	}
+
+	// Certificate exists
+	fmt.Printf("%s\n", caPath)
 	return ExitSuccess
 }
