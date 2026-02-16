@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sahithyandev/faa/internal/daemon"
@@ -632,9 +634,15 @@ func handleClean(args []string) int {
 	// Ask for confirmation unless -y flag is provided
 	if !skipConfirmation {
 		fmt.Print("Are you sure you want to continue? (y/N): ")
-		var response string
-		fmt.Scanln(&response)
-		if response != "y" && response != "Y" && response != "yes" {
+		reader := bufio.NewReader(os.Stdin)
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			printError("Failed to read input: %v", err)
+			return ExitError
+		}
+		// Normalize response (trim whitespace and convert to lowercase)
+		response = strings.ToLower(strings.TrimSpace(response))
+		if response != "y" && response != "yes" {
 			fmt.Println("Clean operation cancelled.")
 			return ExitSuccess
 		}
