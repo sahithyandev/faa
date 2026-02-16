@@ -73,7 +73,7 @@ func (r *Registry) processesPath() string {
 // loadRoutes loads routes from routes.json
 func (r *Registry) loadRoutes() (map[string]int, error) {
 	routes := make(map[string]int)
-	
+
 	data, err := os.ReadFile(r.routesPath())
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -120,7 +120,7 @@ func (r *Registry) saveRoutes(routes map[string]int) error {
 // loadProcesses loads processes from processes.json
 func (r *Registry) loadProcesses() (map[string]*Process, error) {
 	processes := make(map[string]*Process)
-	
+
 	data, err := os.ReadFile(r.processesPath())
 	if err != nil {
 		if os.IsNotExist(err) {

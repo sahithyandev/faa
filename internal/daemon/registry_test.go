@@ -27,7 +27,7 @@ func TestConfigDir(t *testing.T) {
 func TestNewRegistry(t *testing.T) {
 	// Use a temporary directory for testing
 	tmpDir := t.TempDir()
-	
+
 	// Override home directory for testing
 	originalHome := os.Getenv("HOME")
 	defer os.Setenv("HOME", originalHome)
@@ -402,7 +402,7 @@ func TestUpdateExistingProcess(t *testing.T) {
 
 func TestConfigDirPermissions(t *testing.T) {
 	tmpDir := t.TempDir()
-	
+
 	// Override home directory for testing
 	originalHome := os.Getenv("HOME")
 	defer os.Setenv("HOME", originalHome)

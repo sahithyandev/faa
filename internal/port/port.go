@@ -36,16 +36,16 @@ func StablePort(name string) (int, error) {
 	hash := sha256.Sum256([]byte(name))
 	// Use first 4 bytes of hash to get a number
 	hashNum := binary.BigEndian.Uint32(hash[:4])
-	
+
 	// Map to port range
 	portRange := maxPort - minPort + 1
 	initialPort := minPort + int(hashNum%uint32(portRange))
-	
+
 	// Probe for available port
 	port := initialPort
 	attempts := 0
 	maxAttempts := portRange // Try all ports in range
-	
+
 	for attempts < maxAttempts {
 		// Skip avoided ports
 		if !avoidPorts[port] {
@@ -54,16 +54,16 @@ func StablePort(name string) (int, error) {
 				return port, nil
 			}
 		}
-		
+
 		// Increment and wrap
 		port++
 		if port > maxPort {
 			port = minPort
 		}
-		
+
 		attempts++
 	}
-	
+
 	return 0, fmt.Errorf("no free port found in range %d-%d", minPort, maxPort)
 }
 

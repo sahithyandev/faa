@@ -36,20 +36,20 @@ import (
 	"sync"
 
 	"github.com/caddyserver/caddy/v2"
-	
+
 	// Import Caddy modules to register them
 	_ "github.com/caddyserver/caddy/v2/modules/caddyhttp"
 	_ "github.com/caddyserver/caddy/v2/modules/caddyhttp/reverseproxy"
-	_ "github.com/caddyserver/caddy/v2/modules/caddytls"
 	_ "github.com/caddyserver/caddy/v2/modules/caddypki"
+	_ "github.com/caddyserver/caddy/v2/modules/caddytls"
 )
 
 // Proxy manages an embedded Caddy server with dynamic route configuration
 type Proxy struct {
-	mu       sync.RWMutex
-	routes   map[string]int // host -> port mapping
-	running  bool
-	httpPort int // HTTP port (default 80)
+	mu        sync.RWMutex
+	routes    map[string]int // host -> port mapping
+	running   bool
+	httpPort  int // HTTP port (default 80)
 	httpsPort int // HTTPS port (default 443)
 }
 
@@ -91,7 +91,7 @@ func (p *Proxy) Start(ctx context.Context) error {
 	// Run Caddy with the configuration
 	err = caddy.Run(&caddy.Config{
 		Admin: &caddy.AdminConfig{
-			Listen:   "localhost:2019",
+			Listen: "localhost:2019",
 		},
 	})
 	if err != nil {
@@ -190,7 +190,7 @@ func (p *Proxy) buildConfigJSON() ([]byte, error) {
 	// Build the configuration
 	config := map[string]interface{}{
 		"admin": map[string]interface{}{
-			"listen":   "localhost:2019",
+			"listen": "localhost:2019",
 		},
 		"apps": map[string]interface{}{
 			"http": map[string]interface{}{
