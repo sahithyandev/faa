@@ -12,6 +12,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/sahithyandev/faa/internal/hosts"
 	"github.com/sahithyandev/faa/internal/lock"
 	"github.com/sahithyandev/faa/internal/proxy"
 )
@@ -136,6 +137,9 @@ func (d *Daemon) loadAndApplyRoutes() error {
 		// Export CA after applying routes
 		// Routes application triggers Caddy to generate TLS certificates and CA
 		d.tryExportCA()
+		
+		// Sync /etc/hosts with current routes (Linux only, in background)
+		go d.syncHostsFile(routes)
 	}
 
 	return nil
@@ -364,6 +368,9 @@ func (d *Daemon) handleUpsertRoute(req *Request) *Response {
 		
 		// Export CA after applying routes (in background to not block the response)
 		go d.tryExportCA()
+		
+		// Update /etc/hosts with the new route (Linux only, in background)
+		go d.updateHostsFileEntry(data.Host, true)
 	}
 
 	resp, _ := NewSuccessResponse(nil)
@@ -446,8 +453,21 @@ func (d *Daemon) handleClearProcess(req *Request) *Response {
 		return NewErrorResponse(fmt.Errorf("invalid request data: %w", err))
 	}
 
+	// Get the process info before clearing it (to get the hostname for cleanup)
+	proc, err := d.registry.GetProcess(data.ProjectRoot)
+	if err != nil {
+		return NewErrorResponse(err)
+	}
+
+	// Clear the process from registry
 	if err := d.registry.ClearProcess(data.ProjectRoot); err != nil {
 		return NewErrorResponse(err)
+	}
+
+	// Remove the hosts file entry if the process had a hostname
+	// Do this after successful ClearProcess to ensure we only cleanup if registry update succeeded
+	if proc != nil && proc.Host != "" {
+		go d.updateHostsFileEntry(proc.Host, false)
 	}
 
 	resp, _ := NewSuccessResponse(nil)
@@ -503,4 +523,51 @@ func (d *Daemon) handleStop(req *Request) *Response {
 
 	resp, _ := NewSuccessResponse(nil)
 	return resp
+}
+
+// updateHostsFileEntry adds or removes a hosts file entry
+// This is a no-op on non-Linux systems
+func (d *Daemon) updateHostsFileEntry(hostname string, add bool) {
+	if !hosts.IsSupported() {
+		return
+	}
+	
+	var err error
+	if add {
+		err = hosts.AddEntry(hostname)
+	} else {
+		err = hosts.RemoveEntry(hostname)
+	}
+	
+	if err != nil {
+		// Log warning but don't fail - hosts file update is best-effort
+		fmt.Fprintf(os.Stderr, "Warning: Failed to update /etc/hosts for %s: %v\n", hostname, err)
+		fmt.Fprintf(os.Stderr, "  You may need to run the daemon with elevated privileges (sudo)\n")
+		fmt.Fprintf(os.Stderr, "  Or manually add this line to /etc/hosts: 127.0.0.1 %s\n", hostname)
+	}
+}
+
+// syncHostsFile syncs /etc/hosts with all current routes
+// This is a no-op on non-Linux systems
+func (d *Daemon) syncHostsFile(routes map[string]int) {
+	if !hosts.IsSupported() {
+		return
+	}
+	
+	// Extract hostnames from routes
+	hostnames := make([]string, 0, len(routes))
+	for hostname := range routes {
+		hostnames = append(hostnames, hostname)
+	}
+	
+	// Sync entries
+	if err := hosts.SyncEntries(hostnames); err != nil {
+		// Log warning but don't fail - hosts file update is best-effort
+		fmt.Fprintf(os.Stderr, "Warning: Failed to sync /etc/hosts: %v\n", err)
+		fmt.Fprintf(os.Stderr, "  You may need to run the daemon with elevated privileges (sudo)\n")
+		fmt.Fprintf(os.Stderr, "  Or manually add these lines to /etc/hosts:\n")
+		for _, hostname := range hostnames {
+			fmt.Fprintf(os.Stderr, "    127.0.0.1 %s\n", hostname)
+		}
+	}
 }
