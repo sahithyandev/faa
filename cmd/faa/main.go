@@ -1,11 +1,13 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/sahithyandev/faa/internal/daemon"
@@ -20,9 +22,6 @@ import (
 const (
 	ExitSuccess = 0
 	ExitError   = 1
-
-	// caddyInitTimeout is the time to wait for Caddy to initialize and generate CA
-	caddyInitTimeout = 2 * time.Second
 
 	// daemonStartupTimeout is the maximum time to wait for daemon to start
 	daemonStartupTimeout = 5 * time.Second
@@ -73,6 +72,8 @@ func run(args []string) int {
 		return handleRoutes(subArgs)
 	case "ca-path":
 		return handleCAPath(subArgs)
+	case "clean":
+		return handleClean(subArgs)
 	default:
 		// Implicit run: faa <cmd> [args...] becomes run -- <cmd> [args...]
 		return handleRun(args)
@@ -99,6 +100,7 @@ func printUsage() {
 	fmt.Println("  stop          Stop the daemon")
 	fmt.Println("  routes        Display configured routes")
 	fmt.Println("  ca-path       Show the path to the CA certificate")
+	fmt.Println("  clean         Remove all faa configurations and caches")
 	fmt.Println()
 	fmt.Println("If <command> is not a recognized subcommand, it is treated as:")
 	fmt.Println("  faa run -- <command> [args...]")
@@ -162,6 +164,20 @@ func printSubcommandHelp(subcommand string) {
 		fmt.Println()
 		fmt.Println("Options:")
 		fmt.Println("  -h, --help    Show this help message")
+	case "clean":
+		fmt.Println("Usage: faa clean [options]")
+		fmt.Println()
+		fmt.Println("Remove all faa configurations and caches.")
+		fmt.Println()
+		fmt.Println("This command will:")
+		fmt.Println("  - Stop the daemon if running")
+		fmt.Println("  - Remove the faa configuration directory (~/.config/faa/)")
+		fmt.Println("  - Remove Caddy's data directory (~/.local/share/caddy/)")
+		fmt.Println("  - Remove Caddy's configuration cache (~/.config/caddy/)")
+		fmt.Println()
+		fmt.Println("Options:")
+		fmt.Println("  -h, --help    Show this help message")
+		fmt.Println("  -y, --yes     Skip confirmation prompt")
 	default:
 		// For implicit run commands, show run help
 		printSubcommandHelp("run")
@@ -195,21 +211,8 @@ func handleDaemon(args []string) int {
 	}
 	defer p.Stop()
 
-	// Wait a moment for Caddy to initialize and generate CA if needed
-	time.Sleep(caddyInitTimeout)
-
-	// Export CA certificate to config directory
-	if err := proxy.ExportCA(); err != nil {
-		// Log warning but don't fail - CA might not be generated yet
-		fmt.Fprintf(os.Stderr, "Warning: Failed to export CA certificate: %v\n", err)
-		fmt.Fprintf(os.Stderr, "The CA certificate will be available after Caddy generates it.\n")
-	} else {
-		if caPath, err := proxy.GetCAPath(); err == nil {
-			fmt.Printf("CA certificate exported to: %s\n", caPath)
-		}
-	}
-
 	// Create and start daemon
+	// The daemon will load routes and export CA after applying them
 	d := daemon.New(registry, p)
 	if err := d.Start(); err != nil {
 		printError("Failed to start daemon: %v", err)
@@ -592,5 +595,108 @@ func handleCAPath(args []string) int {
 
 	// Certificate exists
 	fmt.Printf("%s\n", caPath)
+	return ExitSuccess
+}
+
+func handleClean(args []string) int {
+	// Parse flags
+	skipConfirmation := false
+	for _, arg := range args {
+		if arg == "-y" || arg == "--yes" {
+			skipConfirmation = true
+		}
+	}
+
+	// Check if daemon is running and warn user
+	if isDaemonRunning() {
+		fmt.Println("Warning: The daemon is currently running.")
+		fmt.Println("It will be stopped before cleaning.")
+		fmt.Println()
+	}
+
+	// Show what will be removed
+	homeDir, err := os.UserHomeDir()
+	if err != nil {
+		printError("Failed to get home directory: %v", err)
+		return ExitError
+	}
+
+	faaConfigDir := filepath.Join(homeDir, ".config", "faa")
+	caddyDataDir := filepath.Join(homeDir, ".local", "share", "caddy")
+	caddyConfigDir := filepath.Join(homeDir, ".config", "caddy")
+
+	fmt.Println("This will remove the following directories:")
+	fmt.Printf("  - %s (faa configuration)\n", faaConfigDir)
+	fmt.Printf("  - %s (Caddy data and certificates)\n", caddyDataDir)
+	fmt.Printf("  - %s (Caddy configuration cache)\n", caddyConfigDir)
+	fmt.Println()
+
+	// Ask for confirmation unless -y flag is provided
+	if !skipConfirmation {
+		fmt.Print("Are you sure you want to continue? (y/N): ")
+		reader := bufio.NewReader(os.Stdin)
+		response, err := reader.ReadString('\n')
+		if err != nil {
+			printError("Failed to read input: %v", err)
+			return ExitError
+		}
+		// Normalize response (trim whitespace and convert to lowercase)
+		response = strings.ToLower(strings.TrimSpace(response))
+		if response != "y" && response != "yes" {
+			fmt.Println("Clean operation cancelled.")
+			return ExitSuccess
+		}
+	}
+
+	// Stop daemon if running
+	if isDaemonRunning() {
+		fmt.Println("Stopping daemon...")
+		client, err := daemon.Connect()
+		if err == nil {
+			if err := client.Stop(false); err != nil {
+				fmt.Fprintf(os.Stderr, "Warning: Failed to stop daemon: %v\n", err)
+				fmt.Println("You may need to manually stop the daemon before cleaning.")
+			} else {
+				// Wait a moment for daemon to shut down
+				time.Sleep(500 * time.Millisecond)
+			}
+			client.Close()
+		}
+	}
+
+	// Remove directories
+	dirsToRemove := []struct {
+		path string
+		name string
+	}{
+		{faaConfigDir, "faa configuration"},
+		{caddyDataDir, "Caddy data"},
+		{caddyConfigDir, "Caddy configuration"},
+	}
+
+	hasErrors := false
+	for _, dir := range dirsToRemove {
+		if _, err := os.Stat(dir.path); err == nil {
+			fmt.Printf("Removing %s...\n", dir.name)
+			if err := os.RemoveAll(dir.path); err != nil {
+				fmt.Fprintf(os.Stderr, "Error removing %s: %v\n", dir.name, err)
+				hasErrors = true
+			}
+		} else if !os.IsNotExist(err) {
+			fmt.Fprintf(os.Stderr, "Error checking %s: %v\n", dir.name, err)
+			hasErrors = true
+		}
+	}
+
+	if hasErrors {
+		fmt.Println()
+		fmt.Println("Clean operation completed with errors.")
+		fmt.Println("Some files may not have been removed.")
+		return ExitError
+	}
+
+	fmt.Println()
+	fmt.Println("Clean operation completed successfully.")
+	fmt.Println("All faa configurations and caches have been removed.")
 	return ExitSuccess
 }

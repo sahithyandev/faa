@@ -359,3 +359,59 @@ func TestIsDaemonRunning(t *testing.T) {
 		t.Error("isDaemonRunning() should return false after daemon is shutdown")
 	}
 }
+
+// TestCleanCommand tests the clean command
+func TestCleanCommand(t *testing.T) {
+	// Create temp directory for test
+	tmpDir := t.TempDir()
+
+	// Override HOME for testing
+	originalHome := os.Getenv("HOME")
+	defer os.Setenv("HOME", originalHome)
+	os.Setenv("HOME", tmpDir)
+
+	// Create test directories that should be cleaned
+	faaConfigDir := filepath.Join(tmpDir, ".config", "faa")
+	caddyDataDir := filepath.Join(tmpDir, ".local", "share", "caddy")
+	caddyConfigDir := filepath.Join(tmpDir, ".config", "caddy")
+
+	// Create directories with test files
+	for _, dir := range []string{faaConfigDir, caddyDataDir, caddyConfigDir} {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			t.Fatalf("Failed to create directory %s: %v", dir, err)
+		}
+		// Create a test file in each directory
+		testFile := filepath.Join(dir, "test.txt")
+		if err := os.WriteFile(testFile, []byte("test"), 0644); err != nil {
+			t.Fatalf("Failed to create test file in %s: %v", dir, err)
+		}
+	}
+
+	// Verify directories exist before clean
+	for _, dir := range []string{faaConfigDir, caddyDataDir, caddyConfigDir} {
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			t.Fatalf("Directory %s should exist before clean", dir)
+		}
+	}
+
+	// Run clean command with -y flag to skip confirmation
+	exitCode := run([]string{"clean", "-y"})
+	if exitCode != ExitSuccess {
+		t.Fatalf("clean command failed with exit code %d", exitCode)
+	}
+
+	// Verify directories are removed
+	for _, dir := range []string{faaConfigDir, caddyDataDir, caddyConfigDir} {
+		if _, err := os.Stat(dir); !os.IsNotExist(err) {
+			t.Errorf("Directory %s should be removed after clean", dir)
+		}
+	}
+}
+
+// TestCleanCommandHelp tests the clean command help
+func TestCleanCommandHelp(t *testing.T) {
+	exitCode := run([]string{"clean", "--help"})
+	if exitCode != ExitSuccess {
+		t.Fatalf("clean --help failed with exit code %d", exitCode)
+	}
+}

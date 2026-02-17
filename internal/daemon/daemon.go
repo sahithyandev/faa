@@ -18,10 +18,12 @@ import (
 
 const (
 	// maxCAExportAttempts is the number of times to retry CA certificate export
-	maxCAExportAttempts = 3
+	// Increased to allow more time for Caddy to generate certificates
+	maxCAExportAttempts = 10
 	
 	// caExportRetryDelay is the delay between CA certificate export retry attempts
-	caExportRetryDelay = 300 * time.Millisecond
+	// Increased to give Caddy more time to generate certificates
+	caExportRetryDelay = 500 * time.Millisecond
 )
 
 // Daemon represents the daemon process that manages routes and processes
