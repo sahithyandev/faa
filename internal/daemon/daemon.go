@@ -459,11 +459,13 @@ func (d *Daemon) handleClearProcess(req *Request) *Response {
 		return NewErrorResponse(err)
 	}
 
+	// Clear the process from registry
 	if err := d.registry.ClearProcess(data.ProjectRoot); err != nil {
 		return NewErrorResponse(err)
 	}
 
 	// Remove the hosts file entry if the process had a hostname
+	// Do this after successful ClearProcess to ensure we only cleanup if registry update succeeded
 	if proc != nil && proc.Host != "" {
 		go d.updateHostsFileEntry(proc.Host, false)
 	}

@@ -462,7 +462,7 @@ On macOS, DNS resolution for `.local` domains is handled differently and doesn't
 
 General notes:
 - **Use in a browser**: Open `https://my-project.local` directly in your web browser
-- **Don't use ping**: The `ping` command requires DNS resolution but doesn't handle HTTPS
+- **ping command limitations**: The `ping` command uses ICMP (network layer) and doesn't work with HTTPS endpoints which operate at the application layer. Use `curl` instead for testing HTTPS endpoints.
 - **Use curl**: After DNS is configured, use `curl https://my-project.local` (trust the CA certificate first with `faa setup`)
 - **Daemon must be running**: Run `faa status` to verify the daemon is active and routes are configured
 - **CA must be trusted**: Run `faa setup` to install the CA certificate so browsers trust the HTTPS connection
