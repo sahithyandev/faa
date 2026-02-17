@@ -144,10 +144,17 @@ func hasEntry(content []byte, hostname string) bool {
 			continue
 		}
 		
-		if inFaaSection && strings.Contains(line, hostname) {
+		if inFaaSection {
 			// Check if it's a valid entry (not a comment)
 			if !strings.HasPrefix(line, "#") {
-				return true
+				// Split line into IP and hostname(s)
+				fields := strings.Fields(line)
+				// Check for exact hostname match in the fields (skip first field which is IP)
+				for i := 1; i < len(fields); i++ {
+					if fields[i] == hostname {
+						return true
+					}
+				}
 			}
 		}
 	}
@@ -223,11 +230,23 @@ func removeEntryFromContent(content []byte, hostname string) []byte {
 			continue
 		}
 		
-		// Skip lines in faa section that contain the hostname
+		// Skip lines in faa section that contain the exact hostname
 		if inFaaSection {
 			trimmedLine := strings.TrimSpace(line)
-			if strings.Contains(trimmedLine, hostname) && !strings.HasPrefix(trimmedLine, "#") {
-				continue // Skip this line
+			if !strings.HasPrefix(trimmedLine, "#") {
+				// Split line into IP and hostname(s)
+				fields := strings.Fields(trimmedLine)
+				// Check for exact hostname match in the fields (skip first field which is IP)
+				shouldRemove := false
+				for i := 1; i < len(fields); i++ {
+					if fields[i] == hostname {
+						shouldRemove = true
+						break
+					}
+				}
+				if shouldRemove {
+					continue // Skip this line
+				}
 			}
 		}
 		

@@ -445,24 +445,18 @@ Solution:
 
 On Linux, faa automatically manages `/etc/hosts` entries to ensure `.local` domains resolve to `127.0.0.1`. The daemon adds entries when routes are created and removes them when routes are cleared.
 
-**Important**: The daemon needs write access to `/etc/hosts`. If you see warnings about failing to update `/etc/hosts`, you have two options:
+**Important**: The daemon needs write access to `/etc/hosts`. If you see warnings about failing to update `/etc/hosts`, run the daemon with elevated privileges:
 
-1. **Run daemon with elevated privileges** (recommended):
-   ```bash
-   sudo faa daemon &
-   ```
+```bash
+sudo faa daemon &
+```
 
-2. **Grant write access to /etc/hosts** (advanced):
-   ```bash
-   # Make /etc/hosts writable by your user (not recommended for production systems)
-   sudo chown $(whoami) /etc/hosts
-   ```
+If you prefer not to run the daemon with sudo, you can manually add entries:
 
-3. **Manually add entries** (if daemon can't write):
-   ```bash
-   # Add this line to /etc/hosts for each project
-   sudo sh -c 'echo "127.0.0.1 my-project.local" >> /etc/hosts'
-   ```
+```bash
+# Add this line to /etc/hosts for each project
+sudo sh -c 'echo "127.0.0.1 my-project.local" >> /etc/hosts'
+```
 
 On macOS, DNS resolution for `.local` domains is handled differently and doesn't require `/etc/hosts` entries.
 

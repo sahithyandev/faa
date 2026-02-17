@@ -59,6 +59,16 @@ func TestHasEntry(t *testing.T) {
 			hostname: "my-app.local",
 			want:     false,
 		},
+		{
+			name: "partial match should not match (no false positives)",
+			content: `127.0.0.1 localhost
+# faa-managed-start
+127.0.0.1 my-app.local
+# faa-managed-end
+`,
+			hostname: "app.local",
+			want:     false,
+		},
 	}
 	
 	for _, tt := range tests {
@@ -158,6 +168,22 @@ func TestRemoveEntryFromContent(t *testing.T) {
 			hostname: "my-app.local",
 			want: `127.0.0.1 localhost
 # faa-managed-start
+127.0.0.1 other-app.local
+# faa-managed-end
+`,
+		},
+		{
+			name: "partial match should not remove (no false positives)",
+			content: `127.0.0.1 localhost
+# faa-managed-start
+127.0.0.1 my-app.local
+127.0.0.1 other-app.local
+# faa-managed-end
+`,
+			hostname: "app.local",
+			want: `127.0.0.1 localhost
+# faa-managed-start
+127.0.0.1 my-app.local
 127.0.0.1 other-app.local
 # faa-managed-end
 `,
