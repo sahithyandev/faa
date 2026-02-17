@@ -1,0 +1,159 @@
+# GoReleaser configuration for faa
+# See https://goreleaser.com for documentation
+
+version: 2
+
+before:
+  hooks:
+    # Ensure dependencies are up to date
+    - go mod tidy
+    # Run tests before building
+    - go test -v ./...
+
+builds:
+  - id: faa
+    main: ./cmd/faa
+    binary: faa
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X github.com/sahithyandev/faa/internal/version.Version={{.Version}}
+      - -X github.com/sahithyandev/faa/internal/version.Commit={{.Commit}}
+      - -X github.com/sahithyandev/faa/internal/version.Date={{.Date}}
+    mod_timestamp: '{{ .CommitTimestamp }}'
+
+archives:
+  - id: faa
+    format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- .Version }}_
+      {{- .Os }}_
+      {{- .Arch }}
+    format_overrides:
+      - goos: windows
+        format: zip
+    files:
+      - README.md
+      - LICENSE.md
+      - CHANGELOG.md
+
+checksum:
+  name_template: 'checksums.txt'
+  algorithm: sha256
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  use: github
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^chore:'
+      - '^build:'
+      - Merge pull request
+      - Merge branch
+  groups:
+    - title: 'New Features'
+      regexp: '^.*?feat(\([[:word:]]+\))??!?:.+$'
+      order: 0
+    - title: 'Bug Fixes'
+      regexp: '^.*?fix(\([[:word:]]+\))??!?:.+$'
+      order: 1
+    - title: 'Documentation'
+      regexp: '^.*?docs(\([[:word:]]+\))??!?:.+$'
+      order: 2
+    - title: 'Other Changes'
+      order: 999
+
+release:
+  github:
+    owner: sahithyandev
+    name: faa
+  prerelease: auto
+  mode: append
+  header: |
+    ## Release {{ .Tag }}
+    
+    ### Installation
+    
+    Download the appropriate binary for your platform from the assets below, or use one of the following methods:
+    
+    **Option 1: Download and extract**
+    ```bash
+    # Example for Linux amd64
+    curl -L https://github.com/sahithyandev/faa/releases/download/{{ .Tag }}/faa_{{ .Version }}_linux_amd64.tar.gz | tar xz
+    sudo mv faa /usr/local/bin/
+    ```
+    
+    **Option 2: Pull from GitHub Container Registry**
+    ```bash
+    docker pull ghcr.io/sahithyandev/faa:{{ .Tag }}
+    # Extract binary from container
+    docker create --name faa-temp ghcr.io/sahithyandev/faa:{{ .Tag }}
+    docker cp faa-temp:/usr/local/bin/faa ./faa
+    docker rm faa-temp
+    sudo mv faa /usr/local/bin/
+    ```
+    
+    ### What's Changed
+  footer: |
+    
+    ---
+    
+    **Full Changelog**: https://github.com/sahithyandev/faa/compare/{{ .PreviousTag }}...{{ .Tag }}
+
+# Publish to GitHub Container Registry (GHCR) as OCI artifacts
+# Using Docker to create lightweight images containing the binary
+dockers:
+  - image_templates:
+      - "ghcr.io/sahithyandev/faa:{{ .Version }}-amd64"
+      - "ghcr.io/sahithyandev/faa:latest-amd64"
+    use: buildx
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--platform=linux/amd64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source=https://github.com/sahithyandev/faa"
+    goos: linux
+    goarch: amd64
+
+  - image_templates:
+      - "ghcr.io/sahithyandev/faa:{{ .Version }}-arm64"
+      - "ghcr.io/sahithyandev/faa:latest-arm64"
+    use: buildx
+    dockerfile: Dockerfile.goreleaser
+    build_flag_templates:
+      - "--platform=linux/arm64"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"
+      - "--label=org.opencontainers.image.source=https://github.com/sahithyandev/faa"
+    goos: linux
+    goarch: arm64
+
+docker_manifests:
+  - name_template: "ghcr.io/sahithyandev/faa:{{ .Version }}"
+    image_templates:
+      - "ghcr.io/sahithyandev/faa:{{ .Version }}-amd64"
+      - "ghcr.io/sahithyandev/faa:{{ .Version }}-arm64"
+
+  - name_template: "ghcr.io/sahithyandev/faa:latest"
+    image_templates:
+      - "ghcr.io/sahithyandev/faa:latest-amd64"
+      - "ghcr.io/sahithyandev/faa:latest-arm64"

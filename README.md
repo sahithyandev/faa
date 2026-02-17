@@ -33,6 +33,48 @@ Using .local domains (e.g., my-app.local instead of localhost:3000) provides:
 
 ## Installation
 
+### Option 1: Download Pre-built Binary (Recommended)
+
+Download the latest release for your platform from the [releases page](https://github.com/sahithyandev/faa/releases).
+
+**Supported Platforms:**
+- macOS: amd64 (Intel), arm64 (Apple Silicon)
+- Linux: amd64, arm64
+
+Extract the binary and add it to your PATH:
+
+```bash
+# Example for macOS arm64 (replace vX.Y.Z with the latest version)
+curl -L https://github.com/sahithyandev/faa/releases/download/vX.Y.Z/faa_X.Y.Z_darwin_arm64.tar.gz | tar xz
+sudo mv faa /usr/local/bin/
+```
+
+Verify the installation:
+
+```bash
+faa version
+```
+
+### Option 2: Install from GitHub Container Registry
+
+You can also pull the binary from GHCR as a Docker image:
+
+```bash
+# Pull the latest version (replace vX.Y.Z with the desired version)
+docker pull ghcr.io/sahithyandev/faa:latest
+
+# Or a specific version
+docker pull ghcr.io/sahithyandev/faa:vX.Y.Z
+
+# Extract the binary from the container
+docker create --name faa-temp ghcr.io/sahithyandev/faa:latest
+docker cp faa-temp:/usr/local/bin/faa ./faa
+docker rm faa-temp
+sudo mv faa /usr/local/bin/
+```
+
+### Option 3: Install from Source
+
 Install from source using Go:
 
 ```bash
@@ -469,6 +511,72 @@ go fmt ./...
 # Check for issues
 go vet ./...
 ```
+
+### Commit Messages
+
+We use [Conventional Commits](https://www.conventionalcommits.org/) for automatic changelog generation. Format your commit messages as:
+
+- `feat: add new feature` - New features
+- `fix: resolve bug` - Bug fixes
+- `docs: update documentation` - Documentation changes
+- `chore: update dependencies` - Maintenance tasks
+- `test: add tests` - Test additions/updates
+- `refactor: restructure code` - Code refactoring
+
+Examples:
+```
+feat: add support for custom domain configuration
+fix: resolve port allocation race condition
+docs: update installation instructions for macOS
+```
+
+## Releasing
+
+This project uses an automated release process with [GoReleaser](https://goreleaser.com/).
+
+### Creating a Release
+
+1. **Update the CHANGELOG.md**:
+   - Move changes from `[Unreleased]` to a new version section
+   - Set the release date
+   - Update version links at the bottom
+
+2. **Create and push a version tag**:
+   ```bash
+   # Create tag (using semantic versioning)
+   git tag -a v0.2.0 -m "Release v0.2.0"
+   
+   # Push tag to trigger release workflow
+   git push origin v0.2.0
+   ```
+
+3. **Automated Release Process**:
+   - GitHub Actions workflow runs tests
+   - GoReleaser builds binaries for:
+     - macOS: amd64 (Intel), arm64 (Apple Silicon)
+     - Linux: amd64, arm64
+   - Creates GitHub Release with auto-generated notes
+   - Publishes binaries as release assets
+   - Publishes Docker images to GitHub Container Registry (GHCR)
+   - Generates SHA256 checksums
+
+4. **Verify the Release**:
+   - Check the [releases page](https://github.com/sahithyandev/faa/releases)
+   - Download and test binaries
+   - Verify Docker images at [GHCR](https://github.com/sahithyandev/faa/pkgs/container/faa)
+
+### Versioning
+
+We follow [Semantic Versioning](https://semver.org/):
+
+- **MAJOR** version: Incompatible API changes
+- **MINOR** version: New functionality (backwards compatible)
+- **PATCH** version: Bug fixes (backwards compatible)
+
+Examples:
+- `v0.1.0` → `v0.2.0`: New features added
+- `v0.2.0` → `v0.2.1`: Bug fixes only
+- `v0.2.1` → `v1.0.0`: First stable release or breaking changes
 
 ## License
 

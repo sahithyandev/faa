@@ -17,6 +17,7 @@ import (
 	"github.com/sahithyandev/faa/internal/project"
 	"github.com/sahithyandev/faa/internal/proxy"
 	"github.com/sahithyandev/faa/internal/setup"
+	"github.com/sahithyandev/faa/internal/version"
 )
 
 const (
@@ -58,6 +59,8 @@ func run(args []string) int {
 
 	// Handle known subcommands
 	switch subcommand {
+	case "version":
+		return handleVersion(subArgs)
 	case "setup":
 		return handleSetup(subArgs)
 	case "daemon":
@@ -93,6 +96,7 @@ func printUsage() {
 	fmt.Println("  -h, --help    Show this help message")
 	fmt.Println()
 	fmt.Println("Commands:")
+	fmt.Println("  version       Show version information")
 	fmt.Println("  setup         Setup the development environment")
 	fmt.Println("  daemon        Start the daemon process")
 	fmt.Println("  run           Run a command or project (default)")
@@ -110,6 +114,14 @@ func printUsage() {
 
 func printSubcommandHelp(subcommand string) {
 	switch subcommand {
+	case "version":
+		fmt.Println("Usage: faa version [options]")
+		fmt.Println()
+		fmt.Println("Show version information including version number, git commit,")
+		fmt.Println("build date, and platform/architecture.")
+		fmt.Println()
+		fmt.Println("Options:")
+		fmt.Println("  -h, --help    Show this help message")
 	case "setup":
 		fmt.Println("Usage: faa setup [options]")
 		fmt.Println()
@@ -182,6 +194,11 @@ func printSubcommandHelp(subcommand string) {
 		// For implicit run commands, show run help
 		printSubcommandHelp("run")
 	}
+}
+
+func handleVersion(args []string) int {
+	fmt.Println(version.Info())
+	return ExitSuccess
 }
 
 func handleSetup(args []string) int {
