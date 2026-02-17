@@ -110,12 +110,14 @@ The setup command will:
 After setup, start the daemon manually:
 
 ```bash
-# Start daemon in background
-faa daemon &
+# Start daemon with sudo (required for automatic /etc/hosts management)
+sudo faa daemon &
 
 # Or run in a separate terminal window
-faa daemon
+sudo faa daemon
 ```
+
+**Note**: The daemon requires sudo to automatically manage `/etc/hosts` entries for `.local` domains. If you run without sudo, you'll need to manually add DNS entries (see troubleshooting section).
 
 To stop the daemon:
 
@@ -258,17 +260,18 @@ Error: "bind: permission denied" when starting daemon.
 Solution:
 
 ```bash
-# Run setup to configure port binding
+# Run setup to configure port binding capability
 faa setup
 
 # Or manually grant capability
 sudo setcap cap_net_bind_service=+ep $(which faa)
 ```
 
-If this doesn't work:
+**Note**: On Linux, running the daemon with sudo is the recommended approach as it also enables automatic `/etc/hosts` management for `.local` domains. The setcap method only handles port binding.
+
+If port 443 is in use:
 - Check if another service is using port 443: `sudo lsof -i :443`
 - Stop conflicting services: `sudo systemctl stop apache2` or `sudo systemctl stop nginx`
-- As a last resort, run daemon with sudo: `sudo faa daemon` (not recommended)
 
 ### Cannot bind to port 443 (macOS)
 
