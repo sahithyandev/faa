@@ -1,0 +1,7 @@
+# Dockerfile used by GoReleaser to package binaries in Docker images
+# This creates a minimal image containing only the faa binary
+FROM gcr.io/distroless/static-debian12:nonroot
+
+COPY faa /usr/local/bin/faa
+
+ENTRYPOINT ["/usr/local/bin/faa"]
