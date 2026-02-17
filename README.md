@@ -44,8 +44,8 @@ Download the latest release for your platform from the [releases page](https://g
 Extract the binary and add it to your PATH:
 
 ```bash
-# Example for macOS arm64
-curl -L https://github.com/sahithyandev/faa/releases/download/v0.1.0/faa_0.1.0_darwin_arm64.tar.gz | tar xz
+# Example for macOS arm64 (replace vX.Y.Z with the latest version)
+curl -L https://github.com/sahithyandev/faa/releases/download/vX.Y.Z/faa_X.Y.Z_darwin_arm64.tar.gz | tar xz
 sudo mv faa /usr/local/bin/
 ```
 
@@ -60,11 +60,11 @@ faa version
 You can also pull the binary from GHCR as a Docker image:
 
 ```bash
-# Pull the latest version
+# Pull the latest version (replace vX.Y.Z with the desired version)
 docker pull ghcr.io/sahithyandev/faa:latest
 
 # Or a specific version
-docker pull ghcr.io/sahithyandev/faa:v0.1.0
+docker pull ghcr.io/sahithyandev/faa:vX.Y.Z
 
 # Extract the binary from the container
 docker create --name faa-temp ghcr.io/sahithyandev/faa:latest
