@@ -172,7 +172,7 @@ func printSubcommandHelp(subcommand string) {
 		fmt.Println()
 		fmt.Println("This command displays the path where the Caddy CA root certificate")
 		fmt.Println("is stored in the faa configuration directory. This certificate can")
-		fmt.Println("be used to trust HTTPS connections to *.local domains.")
+		fmt.Println("be used to trust HTTPS connections to local development domains.")
 		fmt.Println()
 		fmt.Println("Options:")
 		fmt.Println("  -h, --help    Show this help message")

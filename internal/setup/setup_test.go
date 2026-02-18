@@ -85,9 +85,9 @@ func TestGenerateLaunchDaemonPlist(t *testing.T) {
 
 	binaryPath := "/usr/local/bin/faa"
 	socketDir := "/var/run/faa"
-	
+
 	plist := generateLaunchDaemonPlist(binaryPath, socketDir)
-	
+
 	// Check that plist contains expected elements
 	expectedStrings := []string{
 		"dev.localhost-dev",
@@ -97,7 +97,7 @@ func TestGenerateLaunchDaemonPlist(t *testing.T) {
 		"RunAtLoad",
 		"KeepAlive",
 	}
-	
+
 	for _, expected := range expectedStrings {
 		if !strings.Contains(plist, expected) {
 			t.Errorf("Expected plist to contain %q", expected)
@@ -109,7 +109,7 @@ func TestRunDarwin(t *testing.T) {
 	if runtime.GOOS != "darwin" {
 		t.Skip("Skipping macOS-specific test")
 	}
-	
+
 	// This is an integration test that would require user interaction
 	// Just ensure the function exists and can be called
 	t.Skip("Skipping interactive test")
@@ -119,7 +119,7 @@ func TestRunLinux(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("Skipping Linux-specific test")
 	}
-	
+
 	// This is an integration test that would require user interaction
 	// Just ensure the function exists and can be called
 	t.Skip("Skipping interactive test")
@@ -129,7 +129,7 @@ func TestRun(t *testing.T) {
 	// Test that Run() dispatches to the correct platform-specific function
 	// We can't actually run the setup, but we can test that it doesn't panic
 	// for supported platforms
-	
+
 	switch runtime.GOOS {
 	case "linux", "darwin":
 		// These are supported platforms - would require interaction to test fully

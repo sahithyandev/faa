@@ -328,7 +328,7 @@ func printManualCAInstructions(caCertPath string) {
 	fmt.Println("  sudo trust extract-compat")
 	fmt.Println()
 	fmt.Println("After installation, verify with:")
-	fmt.Println("  curl -v https://<your-project>.local")
+	fmt.Println("  curl -v https://<your-project>.localhost")
 }
 
 // filesAreEqual checks if two files have the same content
@@ -376,12 +376,12 @@ func setupLaunchDaemon() error {
 	// Check if LaunchDaemon is already installed
 	if _, err := os.Stat(plistPath); err == nil {
 		fmt.Printf("✓ LaunchDaemon plist already exists at %s\n", plistPath)
-		
+
 		// Check if it needs updating
 		currentContent, err := os.ReadFile(plistPath)
 		if err == nil && string(currentContent) == plistContent {
 			fmt.Println("✓ LaunchDaemon configuration is up to date")
-			
+
 			// Check if daemon is loaded
 			if isLaunchDaemonLoaded() {
 				fmt.Println("✓ LaunchDaemon is loaded and running")
@@ -582,7 +582,7 @@ func checkCATrustDarwin() error {
 
 	fmt.Println()
 	fmt.Println("This will install the Caddy root CA to the System keychain.")
-	fmt.Println("This allows your browser to trust HTTPS certificates for *.local domains.")
+	fmt.Println("This allows your browser to trust HTTPS certificates for local development domains.")
 	fmt.Println()
 	fmt.Print("Install CA certificate to System keychain? [y/N]: ")
 
@@ -605,7 +605,7 @@ func checkCATrustDarwin() error {
 	// Install certificate using security command
 	fmt.Println("Installing CA certificate to System keychain...")
 	cmd := exec.Command("sudo", "security", "add-trusted-cert",
-		"-d", // Add to admin cert store
+		"-d",              // Add to admin cert store
 		"-r", "trustRoot", // Set trust policy to root
 		"-k", "/Library/Keychains/System.keychain", // System keychain
 		caCertPath)
@@ -663,5 +663,5 @@ func printManualCATrustInstructionsDarwin(caCertPath string) {
 	fmt.Println("  5. Set 'When using this certificate' to 'Always Trust'")
 	fmt.Println()
 	fmt.Println("After installation, verify with:")
-	fmt.Println("  curl -v https://<your-project>.local")
+	fmt.Println("  curl -v https://<your-project>.localhost")
 }

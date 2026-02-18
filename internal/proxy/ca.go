@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"time"
 )
 
@@ -25,14 +26,27 @@ func GetCAPath() (string, error) {
 
 // GetCaddyCAPath returns the path to the Caddy-generated CA certificate.
 // This is the internal Caddy PKI CA root certificate.
+// The location varies by OS:
+//   - macOS: ~/Library/Application Support/Caddy/pki/authorities/local/root.crt
+//   - Linux/others: ~/.local/share/caddy/pki/authorities/local/root.crt
 func GetCaddyCAPath() (string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return "", fmt.Errorf("failed to get home directory: %w", err)
 	}
 
-	// Caddy stores its CA certificate at this standard location
-	caddyCAPath := filepath.Join(homeDir, ".local", "share", "caddy", "pki", "authorities", "local", "root.crt")
+	var caddyDataDir string
+	// Match Caddy's AppDataDir() logic from caddy/v2/storage.go
+	switch runtime.GOOS {
+	case "darwin":
+		// macOS uses Application Support
+		caddyDataDir = filepath.Join(homeDir, "Library", "Application Support", "Caddy")
+	default:
+		// Linux and other Unix systems use XDG data directory
+		caddyDataDir = filepath.Join(homeDir, ".local", "share", "caddy")
+	}
+
+	caddyCAPath := filepath.Join(caddyDataDir, "pki", "authorities", "local", "root.crt")
 
 	return caddyCAPath, nil
 }
@@ -114,18 +128,18 @@ func TryExportCA() {
 // This should be called after routes are applied to give Caddy time to generate certs.
 func ExportCAWithRetry(maxAttempts int, delayBetweenAttempts time.Duration) error {
 	var lastErr error
-	
+
 	for i := 0; i < maxAttempts; i++ {
 		if i > 0 {
 			time.Sleep(delayBetweenAttempts)
 		}
-		
+
 		err := ExportCA()
 		if err == nil {
 			return nil
 		}
 		lastErr = err
 	}
-	
+
 	return fmt.Errorf("failed to export CA after %d attempts: %w", maxAttempts, lastErr)
 }
