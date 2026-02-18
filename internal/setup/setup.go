@@ -376,12 +376,12 @@ func setupLaunchDaemon() error {
 	// Check if LaunchDaemon is already installed
 	if _, err := os.Stat(plistPath); err == nil {
 		fmt.Printf("✓ LaunchDaemon plist already exists at %s\n", plistPath)
-		
+
 		// Check if it needs updating
 		currentContent, err := os.ReadFile(plistPath)
 		if err == nil && string(currentContent) == plistContent {
 			fmt.Println("✓ LaunchDaemon configuration is up to date")
-			
+
 			// Check if daemon is loaded
 			if isLaunchDaemonLoaded() {
 				fmt.Println("✓ LaunchDaemon is loaded and running")
@@ -605,7 +605,7 @@ func checkCATrustDarwin() error {
 	// Install certificate using security command
 	fmt.Println("Installing CA certificate to System keychain...")
 	cmd := exec.Command("sudo", "security", "add-trusted-cert",
-		"-d", // Add to admin cert store
+		"-d",              // Add to admin cert store
 		"-r", "trustRoot", // Set trust policy to root
 		"-k", "/Library/Keychains/System.keychain", // System keychain
 		caCertPath)

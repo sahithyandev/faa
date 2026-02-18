@@ -128,18 +128,18 @@ func TryExportCA() {
 // This should be called after routes are applied to give Caddy time to generate certs.
 func ExportCAWithRetry(maxAttempts int, delayBetweenAttempts time.Duration) error {
 	var lastErr error
-	
+
 	for i := 0; i < maxAttempts; i++ {
 		if i > 0 {
 			time.Sleep(delayBetweenAttempts)
 		}
-		
+
 		err := ExportCA()
 		if err == nil {
 			return nil
 		}
 		lastErr = err
 	}
-	
+
 	return fmt.Errorf("failed to export CA after %d attempts: %w", maxAttempts, lastErr)
 }

@@ -10,10 +10,10 @@ import (
 var (
 	// Version is the semantic version of the binary
 	Version = "0.0.0-dev"
-	
+
 	// Commit is the git commit hash
 	Commit = "unknown"
-	
+
 	// Date is the build date in RFC3339 format
 	Date = "unknown"
 )

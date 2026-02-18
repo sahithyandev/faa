@@ -20,7 +20,7 @@ const (
 	// maxCAExportAttempts is the number of times to retry CA certificate export
 	// Increased to allow more time for Caddy to generate certificates
 	maxCAExportAttempts = 10
-	
+
 	// caExportRetryDelay is the delay between CA certificate export retry attempts
 	// Increased to give Caddy more time to generate certificates
 	caExportRetryDelay = 500 * time.Millisecond
@@ -50,7 +50,7 @@ func SocketPath() (string, error) {
 	if socketDir := os.Getenv("FAA_SOCKET_DIR"); socketDir != "" {
 		return filepath.Join(socketDir, "ctl.sock"), nil
 	}
-	
+
 	// Default to user's config directory
 	configDir, err := ConfigDir()
 	if err != nil {
@@ -132,7 +132,7 @@ func (d *Daemon) loadAndApplyRoutes() error {
 		if err := d.proxy.ApplyRoutes(routes); err != nil {
 			return fmt.Errorf("failed to apply routes to proxy: %w", err)
 		}
-		
+
 		// Export CA after applying routes
 		// Routes application triggers Caddy to generate TLS certificates and CA
 		d.tryExportCA()
@@ -361,7 +361,7 @@ func (d *Daemon) handleUpsertRoute(req *Request) *Response {
 		if err := d.proxy.ApplyRoutes(routes); err != nil {
 			return NewErrorResponse(fmt.Errorf("failed to apply routes to proxy: %w", err))
 		}
-		
+
 		// Export CA after applying routes (in background to not block the response)
 		go d.tryExportCA()
 	}

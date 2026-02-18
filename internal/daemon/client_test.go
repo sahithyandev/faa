@@ -299,7 +299,6 @@ func TestClientGetRoute(t *testing.T) {
 	}
 }
 
-
 func TestClientStatus(t *testing.T) {
 	tmpDir := t.TempDir()
 
