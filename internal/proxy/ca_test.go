@@ -3,6 +3,7 @@ package proxy
 import (
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -38,10 +39,17 @@ func TestGetCaddyCAPath(t *testing.T) {
 		t.Error("GetCaddyCAPath() returned empty path")
 	}
 
-	// Path should end with the Caddy PKI structure
-	expectedSuffix := filepath.Join(".local", "share", "caddy", "pki", "authorities", "local", "root.crt")
+	// Path should end with the Caddy PKI structure, with OS-specific prefix
+	var expectedSuffix string
+	switch runtime.GOOS {
+	case "darwin":
+		expectedSuffix = filepath.Join("Library", "Application Support", "Caddy", "pki", "authorities", "local", "root.crt")
+	default:
+		expectedSuffix = filepath.Join(".local", "share", "caddy", "pki", "authorities", "local", "root.crt")
+	}
+	
 	if !strings.HasSuffix(path, expectedSuffix) {
-		t.Errorf("GetCaddyCAPath() returned unexpected path: %s", path)
+		t.Errorf("GetCaddyCAPath() returned unexpected path: %s (expected suffix: %s)", path, expectedSuffix)
 	}
 
 	// Should be an absolute path
