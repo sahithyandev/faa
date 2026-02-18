@@ -606,9 +606,9 @@ func TestNormalizeHost(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "host without .local suffix",
+			name:     "host without local suffix",
 			input:    "blog",
-			expected: "blog.local",
+			expected: "blog.localhost",
 		},
 		{
 			name:     "host with .local suffix",
@@ -616,9 +616,14 @@ func TestNormalizeHost(t *testing.T) {
 			expected: "blog.local",
 		},
 		{
+			name:     "host with .localhost suffix",
+			input:    "blog.localhost",
+			expected: "blog.localhost",
+		},
+		{
 			name:     "host with hyphen",
 			input:    "my-app",
-			expected: "my-app.local",
+			expected: "my-app.localhost",
 		},
 		{
 			name:     "host with .local suffix already",
@@ -657,12 +662,13 @@ func TestLoadRoutesWithNormalization(t *testing.T) {
 		t.Fatalf("NewRegistry() failed: %v", err)
 	}
 
-	// Create routes file with legacy entries (without .local suffix)
+	// Create routes file with mixed entries (without suffix, .local, and .localhost)
 	routesFile := reg.routesPath()
 	legacyRoutes := `{
   "blog": 12345,
   "app.local": 23456,
-  "api": 34567
+  "api": 34567,
+  "dash.localhost": 45678
 }`
 	if err := os.WriteFile(routesFile, []byte(legacyRoutes), 0644); err != nil {
 		t.Fatalf("Failed to write legacy routes file: %v", err)
@@ -674,11 +680,12 @@ func TestLoadRoutesWithNormalization(t *testing.T) {
 		t.Fatalf("loadRoutes() failed: %v", err)
 	}
 
-	// Verify all hosts have .local suffix
+	// Verify hosts are normalized correctly
 	expectedRoutes := map[string]int{
-		"blog.local": 12345,
-		"app.local":  23456,
-		"api.local":  34567,
+		"blog.localhost": 12345,
+		"app.local":      23456,
+		"api.localhost":  34567,
+		"dash.localhost": 45678,
 	}
 
 	if len(routes) != len(expectedRoutes) {
@@ -693,7 +700,7 @@ func TestLoadRoutesWithNormalization(t *testing.T) {
 		}
 	}
 
-	// Verify the original hosts without .local don't exist
+	// Verify the original hosts without suffix don't exist
 	if _, ok := routes["blog"]; ok {
 		t.Error("loadRoutes() should not contain unnormalized host 'blog'")
 	}
@@ -717,12 +724,12 @@ func TestUpsertRouteNormalization(t *testing.T) {
 		t.Fatalf("NewRegistry() failed: %v", err)
 	}
 
-	// Upsert a route without .local suffix
+	// Upsert a route without suffix
 	if err := reg.UpsertRoute("myapp", 12345); err != nil {
 		t.Fatalf("UpsertRoute() failed: %v", err)
 	}
 
-	// Verify it's stored with .local suffix
+	// Verify bare name lookups work via normalization
 	port, err := reg.GetRoute("myapp")
 	if err != nil {
 		t.Fatalf("GetRoute() failed: %v", err)
@@ -732,14 +739,24 @@ func TestUpsertRouteNormalization(t *testing.T) {
 		t.Errorf("GetRoute('myapp') = %d, want 12345", port)
 	}
 
-	// Also verify with explicit .local suffix
-	port2, err := reg.GetRoute("myapp.local")
+	// Also verify with explicit .localhost suffix
+	port2, err := reg.GetRoute("myapp.localhost")
+	if err != nil {
+		t.Fatalf("GetRoute('myapp.localhost') failed: %v", err)
+	}
+
+	if port2 != 12345 {
+		t.Errorf("GetRoute('myapp.localhost') = %d, want 12345", port2)
+	}
+
+	// Legacy .local suffix still resolves
+	portLegacy, err := reg.GetRoute("myapp.local")
 	if err != nil {
 		t.Fatalf("GetRoute('myapp.local') failed: %v", err)
 	}
 
-	if port2 != 12345 {
-		t.Errorf("GetRoute('myapp.local') = %d, want 12345", port2)
+	if portLegacy != 12345 {
+		t.Errorf("GetRoute('myapp.local') = %d, want 12345", portLegacy)
 	}
 
 	// Load routes directly and verify the key is normalized
@@ -752,9 +769,9 @@ func TestUpsertRouteNormalization(t *testing.T) {
 		t.Error("Route should not be stored with unnormalized host 'myapp'")
 	}
 
-	if port, ok := routes["myapp.local"]; !ok {
-		t.Error("Route should be stored with normalized host 'myapp.local'")
+	if port, ok := routes["myapp.localhost"]; !ok {
+		t.Error("Route should be stored with normalized host 'myapp.localhost'")
 	} else if port != 12345 {
-		t.Errorf("Route 'myapp.local' = port %d, want 12345", port)
+		t.Errorf("Route 'myapp.localhost' = port %d, want 12345", port)
 	}
 }

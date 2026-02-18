@@ -74,18 +74,31 @@ func (r *Registry) processesPath() string {
 	return filepath.Join(r.configDir, "processes.json")
 }
 
-// normalizeHost ensures a hostname has the .local suffix
-// If the host already ends with .local, it returns it unchanged
-// Otherwise, it appends .local to the host
-// Empty hostnames are returned unchanged to avoid creating invalid ".local" hostnames
+// normalizeHost ensures a hostname has a local development suffix.
+// If the host already ends with .local or .localhost, it returns it unchanged.
+// Otherwise, it appends .localhost to the host.
+// Empty hostnames are returned unchanged to avoid creating invalid hostnames.
 func normalizeHost(host string) string {
 	if host == "" {
 		return host
 	}
-	if strings.HasSuffix(host, ".local") {
+	if strings.HasSuffix(host, ".local") || strings.HasSuffix(host, ".localhost") {
 		return host
 	}
-	return host + ".local"
+	return host + ".localhost"
+}
+
+// alternateLocalHost returns the equivalent hostname with the other supported
+// local suffix (.local <-> .localhost). Returns empty string if no alternate.
+func alternateLocalHost(host string) string {
+	switch {
+	case strings.HasSuffix(host, ".localhost"):
+		return strings.TrimSuffix(host, ".localhost") + ".local"
+	case strings.HasSuffix(host, ".local"):
+		return strings.TrimSuffix(host, ".local") + ".localhost"
+	default:
+		return ""
+	}
 }
 
 // loadRoutes loads routes from routes.json
@@ -111,8 +124,8 @@ func (r *Registry) loadRoutes() (map[string]int, error) {
 		return nil, fmt.Errorf("failed to parse routes.json: %w", err)
 	}
 
-	// Normalize all hostnames to ensure they have .local suffix
-	// This fixes legacy entries that might not have .local
+	// Normalize all hostnames to ensure they have a local suffix.
+	// This fixes legacy entries that might not have one.
 	for host, port := range rawRoutes {
 		normalizedHost := normalizeHost(host)
 		routes[normalizedHost] = port
@@ -197,7 +210,7 @@ func (r *Registry) UpsertRoute(host string, port int) error {
 		return err
 	}
 
-	// Ensure host has .local suffix
+	// Ensure host has a local suffix
 	normalizedHost := normalizeHost(host)
 	routes[normalizedHost] = port
 	return r.saveRoutes(routes)
@@ -210,11 +223,19 @@ func (r *Registry) GetRoute(host string) (int, error) {
 		return 0, err
 	}
 
-	// Ensure host has .local suffix when looking up
+	// Ensure host has a local suffix when looking up
 	normalizedHost := normalizeHost(host)
 	port, ok := routes[normalizedHost]
 	if !ok {
-		return 0, nil
+		alternateHost := alternateLocalHost(normalizedHost)
+		if alternateHost == "" {
+			return 0, nil
+		}
+		altPort, altOK := routes[alternateHost]
+		if !altOK {
+			return 0, nil
+		}
+		return altPort, nil
 	}
 
 	return port, nil
