@@ -47,7 +47,7 @@ func TestGetCaddyCAPath(t *testing.T) {
 	default:
 		expectedSuffix = filepath.Join(".local", "share", "caddy", "pki", "authorities", "local", "root.crt")
 	}
-	
+
 	if !strings.HasSuffix(path, expectedSuffix) {
 		t.Errorf("GetCaddyCAPath() returned unexpected path: %s (expected suffix: %s)", path, expectedSuffix)
 	}
