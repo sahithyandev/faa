@@ -121,8 +121,8 @@ func TestApplyRoutesWhenNotRunning(t *testing.T) {
 	p := NewWithPorts(18083, 18446)
 
 	routes := map[string]int{
-		"test1.local": 3000,
-		"test2.local": 3001,
+		"test1.lab": 3000,
+		"test2.lab": 3001,
 	}
 
 	err := p.ApplyRoutes(routes)
@@ -138,12 +138,12 @@ func TestApplyRoutesWhenNotRunning(t *testing.T) {
 		t.Errorf("Expected 2 routes, got %d", len(p.routes))
 	}
 
-	if p.routes["test1.local"] != 3000 {
-		t.Errorf("Expected test1.local -> 3000, got %d", p.routes["test1.local"])
+	if p.routes["test1.lab"] != 3000 {
+		t.Errorf("Expected test1.lab -> 3000, got %d", p.routes["test1.lab"])
 	}
 
-	if p.routes["test2.local"] != 3001 {
-		t.Errorf("Expected test2.local -> 3001, got %d", p.routes["test2.local"])
+	if p.routes["test2.lab"] != 3001 {
+		t.Errorf("Expected test2.lab -> 3001, got %d", p.routes["test2.lab"])
 	}
 }
 
@@ -164,7 +164,7 @@ func TestApplyRoutesWhenRunning(t *testing.T) {
 
 	// Apply new routes
 	routes := map[string]int{
-		"newhost.local": 4000,
+		"newhost.lab": 4000,
 	}
 
 	err = p.ApplyRoutes(routes)
@@ -180,8 +180,8 @@ func TestApplyRoutesWhenRunning(t *testing.T) {
 		t.Errorf("Expected 1 route, got %d", len(p.routes))
 	}
 
-	if p.routes["newhost.local"] != 4000 {
-		t.Errorf("Expected newhost.local -> 4000, got %d", p.routes["newhost.local"])
+	if p.routes["newhost.lab"] != 4000 {
+		t.Errorf("Expected newhost.lab -> 4000, got %d", p.routes["newhost.lab"])
 	}
 }
 
@@ -192,7 +192,7 @@ func TestDefaultRoute(t *testing.T) {
 
 	// Set a test route before starting
 	err := p.ApplyRoutes(map[string]int{
-		"example.local": 12345,
+		"example.lab": 12345,
 	})
 	if err != nil {
 		t.Fatalf("ApplyRoutes() failed: %v", err)
@@ -216,9 +216,9 @@ func TestDefaultRoute(t *testing.T) {
 		t.Error("Expected at least one route")
 	}
 
-	port, exists := p.routes["example.local"]
+	port, exists := p.routes["example.lab"]
 	if !exists {
-		t.Error("Expected route 'example.local' to exist")
+		t.Error("Expected route 'example.lab' to exist")
 	}
 
 	if port != 12345 {
@@ -228,7 +228,7 @@ func TestDefaultRoute(t *testing.T) {
 
 func TestBuildConfigJSON(t *testing.T) {
 	p := NewWithPorts(18086, 18449)
-	p.routes["test.local"] = 8080
+	p.routes["test.lab"] = 8080
 
 	configJSON, err := p.buildConfigJSON()
 	if err != nil {
@@ -249,9 +249,9 @@ func TestMultipleRoutes(t *testing.T) {
 	p := NewWithPorts(18087, 18450)
 
 	routes := map[string]int{
-		"app1.local": 3000,
-		"app2.local": 3001,
-		"app3.local": 3002,
+		"app1.lab": 3000,
+		"app2.lab": 3001,
+		"app3.lab": 3002,
 	}
 
 	err := p.ApplyRoutes(routes)
@@ -306,7 +306,7 @@ func TestApplyRoutesConcurrency(t *testing.T) {
 		go func(id int) {
 			defer wg.Done()
 			routes := map[string]int{
-				fmt.Sprintf("app%d.local", id): 3000 + id,
+				fmt.Sprintf("app%d.lab", id): 3000 + id,
 			}
 			err := p.ApplyRoutes(routes)
 			if err != nil {
@@ -332,7 +332,7 @@ func TestApplyRoutesRepeated(t *testing.T) {
 	// Apply routes multiple times to verify no crashes
 	for i := 0; i < 10; i++ {
 		routes := map[string]int{
-			"test.local": 3000 + i,
+			"test.lab": 3000 + i,
 		}
 		err := p.ApplyRoutes(routes)
 		if err != nil {
@@ -341,9 +341,9 @@ func TestApplyRoutesRepeated(t *testing.T) {
 
 		// Verify routes were updated
 		p.mu.RLock()
-		if p.routes["test.local"] != 3000+i {
+		if p.routes["test.lab"] != 3000+i {
 			t.Errorf("Route not updated correctly on iteration %d: got %d, want %d",
-				i, p.routes["test.local"], 3000+i)
+				i, p.routes["test.lab"], 3000+i)
 		}
 		p.mu.RUnlock()
 	}

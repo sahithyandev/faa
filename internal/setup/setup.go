@@ -328,7 +328,7 @@ func printManualCAInstructions(caCertPath string) {
 	fmt.Println("  sudo trust extract-compat")
 	fmt.Println()
 	fmt.Println("After installation, verify with:")
-	fmt.Println("  curl -v https://<your-project>.localhost")
+	fmt.Println("  curl -v https://<your-project>.lab")
 }
 
 // filesAreEqual checks if two files have the same content
@@ -663,5 +663,5 @@ func printManualCATrustInstructionsDarwin(caCertPath string) {
 	fmt.Println("  5. Set 'When using this certificate' to 'Always Trust'")
 	fmt.Println()
 	fmt.Println("After installation, verify with:")
-	fmt.Println("  curl -v https://<your-project>.localhost")
+	fmt.Println("  curl -v https://<your-project>.lab")
 }

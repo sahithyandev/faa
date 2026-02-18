@@ -26,7 +26,7 @@ func TestPortPersistenceIntegration(t *testing.T) {
 		t.Fatalf("NewRegistry() failed: %v", err)
 	}
 
-	testHost := "my-project.local"
+	testHost := "my-project.lab"
 	predefinedPort := 12345
 
 	if err := registry.UpsertRoute(testHost, predefinedPort); err != nil {
@@ -77,7 +77,7 @@ func TestPortPersistenceIntegration(t *testing.T) {
 	}
 
 	// Step 4: Verify non-existent routes return 0
-	port2, err := client.GetRoute("nonexistent.local")
+	port2, err := client.GetRoute("nonexistent.lab")
 	if err != nil {
 		t.Fatalf("GetRoute() for nonexistent host failed: %v", err)
 	}

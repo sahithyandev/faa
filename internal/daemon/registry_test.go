@@ -54,7 +54,7 @@ func TestUpsertRoute(t *testing.T) {
 	reg := &Registry{configDir: tmpDir}
 
 	// Test inserting a new route
-	err := reg.UpsertRoute("example.local", 3000)
+	err := reg.UpsertRoute("example.lab", 3000)
 	if err != nil {
 		t.Fatalf("UpsertRoute() failed: %v", err)
 	}
@@ -65,12 +65,12 @@ func TestUpsertRoute(t *testing.T) {
 		t.Fatalf("loadRoutes() failed: %v", err)
 	}
 
-	if port, ok := routes["example.local"]; !ok || port != 3000 {
+	if port, ok := routes["example.lab"]; !ok || port != 3000 {
 		t.Errorf("Route not saved correctly: got port %d, want 3000", port)
 	}
 
 	// Test updating an existing route
-	err = reg.UpsertRoute("example.local", 3001)
+	err = reg.UpsertRoute("example.lab", 3001)
 	if err != nil {
 		t.Fatalf("UpsertRoute() update failed: %v", err)
 	}
@@ -80,7 +80,7 @@ func TestUpsertRoute(t *testing.T) {
 		t.Fatalf("loadRoutes() failed: %v", err)
 	}
 
-	if port, ok := routes["example.local"]; !ok || port != 3001 {
+	if port, ok := routes["example.lab"]; !ok || port != 3001 {
 		t.Errorf("Route not updated correctly: got port %d, want 3001", port)
 	}
 }
@@ -90,7 +90,7 @@ func TestGetRoute(t *testing.T) {
 	reg := &Registry{configDir: tmpDir}
 
 	// Test getting route that doesn't exist
-	port, err := reg.GetRoute("nonexistent.local")
+	port, err := reg.GetRoute("nonexistent.lab")
 	if err != nil {
 		t.Fatalf("GetRoute() failed: %v", err)
 	}
@@ -99,13 +99,13 @@ func TestGetRoute(t *testing.T) {
 	}
 
 	// Add a route
-	err = reg.UpsertRoute("example.local", 3000)
+	err = reg.UpsertRoute("example.lab", 3000)
 	if err != nil {
 		t.Fatalf("UpsertRoute() failed: %v", err)
 	}
 
 	// Get the route
-	port, err = reg.GetRoute("example.local")
+	port, err = reg.GetRoute("example.lab")
 	if err != nil {
 		t.Fatalf("GetRoute() failed: %v", err)
 	}
@@ -114,13 +114,13 @@ func TestGetRoute(t *testing.T) {
 	}
 
 	// Update the route
-	err = reg.UpsertRoute("example.local", 3001)
+	err = reg.UpsertRoute("example.lab", 3001)
 	if err != nil {
 		t.Fatalf("UpsertRoute() update failed: %v", err)
 	}
 
 	// Get the updated route
-	port, err = reg.GetRoute("example.local")
+	port, err = reg.GetRoute("example.lab")
 	if err != nil {
 		t.Fatalf("GetRoute() after update failed: %v", err)
 	}
@@ -143,9 +143,9 @@ func TestListRoutes(t *testing.T) {
 	}
 
 	// Add some routes
-	reg.UpsertRoute("app1.local", 3000)
-	reg.UpsertRoute("app2.local", 3001)
-	reg.UpsertRoute("app3.local", 3002)
+	reg.UpsertRoute("app1.lab", 3000)
+	reg.UpsertRoute("app2.lab", 3001)
+	reg.UpsertRoute("app3.lab", 3002)
 
 	routes, err = reg.ListRoutes()
 	if err != nil {
@@ -162,14 +162,14 @@ func TestListRoutes(t *testing.T) {
 		routeMap[r.Host] = r.Port
 	}
 
-	if routeMap["app1.local"] != 3000 {
-		t.Errorf("app1.local: got port %d, want 3000", routeMap["app1.local"])
+	if routeMap["app1.lab"] != 3000 {
+		t.Errorf("app1.lab: got port %d, want 3000", routeMap["app1.lab"])
 	}
-	if routeMap["app2.local"] != 3001 {
-		t.Errorf("app2.local: got port %d, want 3001", routeMap["app2.local"])
+	if routeMap["app2.lab"] != 3001 {
+		t.Errorf("app2.lab: got port %d, want 3001", routeMap["app2.lab"])
 	}
-	if routeMap["app3.local"] != 3002 {
-		t.Errorf("app3.local: got port %d, want 3002", routeMap["app3.local"])
+	if routeMap["app3.lab"] != 3002 {
+		t.Errorf("app3.lab: got port %d, want 3002", routeMap["app3.lab"])
 	}
 }
 
@@ -180,7 +180,7 @@ func TestSetProcess(t *testing.T) {
 	startTime := time.Now()
 	projectRoot := "/home/user/project"
 
-	err := reg.SetProcess(projectRoot, 12345, "myapp.local", 3000, startTime)
+	err := reg.SetProcess(projectRoot, 12345, "myapp.lab", 3000, startTime)
 	if err != nil {
 		t.Fatalf("SetProcess() failed: %v", err)
 	}
@@ -199,8 +199,8 @@ func TestSetProcess(t *testing.T) {
 	if proc.PID != 12345 {
 		t.Errorf("PID = %d, want 12345", proc.PID)
 	}
-	if proc.Host != "myapp.local" {
-		t.Errorf("Host = %s, want myapp.local", proc.Host)
+	if proc.Host != "myapp.lab" {
+		t.Errorf("Host = %s, want myapp.lab", proc.Host)
 	}
 	if proc.Port != 3000 {
 		t.Errorf("Port = %d, want 3000", proc.Port)
@@ -218,7 +218,7 @@ func TestClearProcess(t *testing.T) {
 	startTime := time.Now()
 
 	// Add a process
-	err := reg.SetProcess(projectRoot, 12345, "myapp.local", 3000, startTime)
+	err := reg.SetProcess(projectRoot, 12345, "myapp.lab", 3000, startTime)
 	if err != nil {
 		t.Fatalf("SetProcess() failed: %v", err)
 	}
@@ -255,9 +255,9 @@ func TestListProcesses(t *testing.T) {
 
 	// Add some processes
 	startTime := time.Now()
-	reg.SetProcess("/home/user/project1", 12345, "app1.local", 3000, startTime)
-	reg.SetProcess("/home/user/project2", 12346, "app2.local", 3001, startTime)
-	reg.SetProcess("/home/user/project3", 12347, "app3.local", 3002, startTime)
+	reg.SetProcess("/home/user/project1", 12345, "app1.lab", 3000, startTime)
+	reg.SetProcess("/home/user/project2", 12346, "app2.lab", 3001, startTime)
+	reg.SetProcess("/home/user/project3", 12347, "app3.lab", 3002, startTime)
 
 	processes, err = reg.ListProcesses()
 	if err != nil {
@@ -290,7 +290,7 @@ func TestAtomicWrite_Routes(t *testing.T) {
 	reg := &Registry{configDir: tmpDir}
 
 	// Add a route
-	err := reg.UpsertRoute("test.local", 3000)
+	err := reg.UpsertRoute("test.lab", 3000)
 	if err != nil {
 		t.Fatalf("UpsertRoute() failed: %v", err)
 	}
@@ -312,7 +312,7 @@ func TestAtomicWrite_Processes(t *testing.T) {
 	reg := &Registry{configDir: tmpDir}
 
 	// Add a process
-	err := reg.SetProcess("/home/user/project", 12345, "test.local", 3000, time.Now())
+	err := reg.SetProcess("/home/user/project", 12345, "test.lab", 3000, time.Now())
 	if err != nil {
 		t.Fatalf("SetProcess() failed: %v", err)
 	}
@@ -334,7 +334,7 @@ func TestFilePermissions(t *testing.T) {
 	reg := &Registry{configDir: tmpDir}
 
 	// Create routes file
-	err := reg.UpsertRoute("test.local", 3000)
+	err := reg.UpsertRoute("test.lab", 3000)
 	if err != nil {
 		t.Fatalf("UpsertRoute() failed: %v", err)
 	}
@@ -352,7 +352,7 @@ func TestFilePermissions(t *testing.T) {
 	}
 
 	// Create processes file
-	err = reg.SetProcess("/home/user/project", 12345, "test.local", 3000, time.Now())
+	err = reg.SetProcess("/home/user/project", 12345, "test.lab", 3000, time.Now())
 	if err != nil {
 		t.Fatalf("SetProcess() failed: %v", err)
 	}
@@ -410,14 +410,14 @@ func TestUpdateExistingProcess(t *testing.T) {
 	startTime1 := time.Now()
 
 	// Add initial process
-	err := reg.SetProcess(projectRoot, 12345, "app.local", 3000, startTime1)
+	err := reg.SetProcess(projectRoot, 12345, "app.lab", 3000, startTime1)
 	if err != nil {
 		t.Fatalf("SetProcess() failed: %v", err)
 	}
 
 	// Update the same process with new values
 	startTime2 := time.Now().Add(time.Hour)
-	err = reg.SetProcess(projectRoot, 67890, "app2.local", 3001, startTime2)
+	err = reg.SetProcess(projectRoot, 67890, "app2.lab", 3001, startTime2)
 	if err != nil {
 		t.Fatalf("SetProcess() update failed: %v", err)
 	}
@@ -436,8 +436,8 @@ func TestUpdateExistingProcess(t *testing.T) {
 	if proc.PID != 67890 {
 		t.Errorf("PID = %d, want 67890", proc.PID)
 	}
-	if proc.Host != "app2.local" {
-		t.Errorf("Host = %s, want app2.local", proc.Host)
+	if proc.Host != "app2.lab" {
+		t.Errorf("Host = %s, want app2.lab", proc.Host)
 	}
 	if proc.Port != 3001 {
 		t.Errorf("Port = %d, want 3001", proc.Port)
@@ -480,13 +480,13 @@ func TestCleanupStaleProcesses(t *testing.T) {
 	fakePID := 999999 // This PID should not exist
 
 	// Add alive process
-	err := reg.SetProcess("/home/user/project1", currentPID, "app1.local", 3000, startTime)
+	err := reg.SetProcess("/home/user/project1", currentPID, "app1.lab", 3000, startTime)
 	if err != nil {
 		t.Fatalf("SetProcess() failed: %v", err)
 	}
 
 	// Add dead process
-	err = reg.SetProcess("/home/user/project2", fakePID, "app2.local", 3001, startTime)
+	err = reg.SetProcess("/home/user/project2", fakePID, "app2.lab", 3001, startTime)
 	if err != nil {
 		t.Fatalf("SetProcess() failed: %v", err)
 	}
@@ -534,7 +534,7 @@ func TestCleanupStaleProcesses_NoStaleProcesses(t *testing.T) {
 	currentPID := os.Getpid()
 
 	// Add only alive process
-	err := reg.SetProcess("/home/user/project1", currentPID, "app1.local", 3000, startTime)
+	err := reg.SetProcess("/home/user/project1", currentPID, "app1.lab", 3000, startTime)
 	if err != nil {
 		t.Fatalf("SetProcess() failed: %v", err)
 	}
@@ -608,12 +608,12 @@ func TestNormalizeHost(t *testing.T) {
 		{
 			name:     "host without local suffix",
 			input:    "blog",
-			expected: "blog.localhost",
+			expected: "blog.lab",
 		},
 		{
-			name:     "host with .local suffix",
-			input:    "blog.local",
-			expected: "blog.local",
+			name:     "host with .lab suffix",
+			input:    "blog.lab",
+			expected: "blog.lab",
 		},
 		{
 			name:     "host with .localhost suffix",
@@ -623,12 +623,12 @@ func TestNormalizeHost(t *testing.T) {
 		{
 			name:     "host with hyphen",
 			input:    "my-app",
-			expected: "my-app.localhost",
+			expected: "my-app.lab",
 		},
 		{
-			name:     "host with .local suffix already",
-			input:    "my-app.local",
-			expected: "my-app.local",
+			name:     "host with .lab suffix already",
+			input:    "my-app.lab",
+			expected: "my-app.lab",
 		},
 		{
 			name:     "empty host",
@@ -662,11 +662,11 @@ func TestLoadRoutesWithNormalization(t *testing.T) {
 		t.Fatalf("NewRegistry() failed: %v", err)
 	}
 
-	// Create routes file with mixed entries (without suffix, .local, and .localhost)
+	// Create routes file with mixed entries (without suffix, .lab, and .localhost)
 	routesFile := reg.routesPath()
 	legacyRoutes := `{
   "blog": 12345,
-  "app.local": 23456,
+  "app.lab": 23456,
   "api": 34567,
   "dash.localhost": 45678
 }`
@@ -682,9 +682,9 @@ func TestLoadRoutesWithNormalization(t *testing.T) {
 
 	// Verify hosts are normalized correctly
 	expectedRoutes := map[string]int{
-		"blog.localhost": 12345,
-		"app.local":      23456,
-		"api.localhost":  34567,
+		"blog.lab":       12345,
+		"app.lab":        23456,
+		"api.lab":        34567,
 		"dash.localhost": 45678,
 	}
 
@@ -739,24 +739,24 @@ func TestUpsertRouteNormalization(t *testing.T) {
 		t.Errorf("GetRoute('myapp') = %d, want 12345", port)
 	}
 
-	// Also verify with explicit .localhost suffix
-	port2, err := reg.GetRoute("myapp.localhost")
+	// Also verify with explicit .lab suffix
+	port2, err := reg.GetRoute("myapp.lab")
+	if err != nil {
+		t.Fatalf("GetRoute('myapp.lab') failed: %v", err)
+	}
+
+	if port2 != 12345 {
+		t.Errorf("GetRoute('myapp.lab') = %d, want 12345", port2)
+	}
+
+	// Alternate .localhost suffix still resolves
+	portAlternate, err := reg.GetRoute("myapp.localhost")
 	if err != nil {
 		t.Fatalf("GetRoute('myapp.localhost') failed: %v", err)
 	}
 
-	if port2 != 12345 {
-		t.Errorf("GetRoute('myapp.localhost') = %d, want 12345", port2)
-	}
-
-	// Legacy .local suffix still resolves
-	portLegacy, err := reg.GetRoute("myapp.local")
-	if err != nil {
-		t.Fatalf("GetRoute('myapp.local') failed: %v", err)
-	}
-
-	if portLegacy != 12345 {
-		t.Errorf("GetRoute('myapp.local') = %d, want 12345", portLegacy)
+	if portAlternate != 12345 {
+		t.Errorf("GetRoute('myapp.localhost') = %d, want 12345", portAlternate)
 	}
 
 	// Load routes directly and verify the key is normalized
@@ -769,9 +769,9 @@ func TestUpsertRouteNormalization(t *testing.T) {
 		t.Error("Route should not be stored with unnormalized host 'myapp'")
 	}
 
-	if port, ok := routes["myapp.localhost"]; !ok {
-		t.Error("Route should be stored with normalized host 'myapp.localhost'")
+	if port, ok := routes["myapp.lab"]; !ok {
+		t.Error("Route should be stored with normalized host 'myapp.lab'")
 	} else if port != 12345 {
-		t.Errorf("Route 'myapp.localhost' = port %d, want 12345", port)
+		t.Errorf("Route 'myapp.lab' = port %d, want 12345", port)
 	}
 }

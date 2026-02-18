@@ -6,7 +6,7 @@ A development server manager that provides stable HTTPS URLs for local Node.js p
 
 faa runs a background daemon that:
 - Assigns each project a stable port based on its name (consistent across restarts)
-- Provides HTTPS access via .local domains (e.g., https://my-app.local)
+- Provides HTTPS access via .lab and .localhost domains (e.g., https://my-app.lab)
 - Manages an embedded Caddy reverse proxy with automatic certificate generation
 - Tracks running development servers across multiple projects
 
@@ -14,16 +14,18 @@ When you run `faa npm start` in a project directory, faa:
 1. Detects your project from package.json
 2. Assigns a stable port (e.g., 12345)
 3. Starts your dev server with PORT=12345
-4. Configures HTTPS routing: https://my-app.local -> localhost:12345
+4. Configures HTTPS routing: https://my-app.lab -> localhost:12345
 5. Displays the HTTPS URL you can access in your browser
 
-## Why .local domains
+## Why .lab domains
 
-Using .local domains (e.g., my-app.local instead of localhost:3000) provides:
+Using .lab domains (e.g., my-app.lab instead of localhost:3000) provides:
 - Consistent URLs that don't change when port numbers change
 - Proper HTTPS with trusted certificates for testing secure features
 - Cleaner URLs that are easier to share and remember
 - Ability to run multiple projects simultaneously without port conflicts
+
+faa also supports `.localhost` if you prefer domains that resolve without additional DNS setup.
 
 ## Requirements
 
@@ -167,7 +169,7 @@ This command:
 - Assigns a stable port (e.g., 12345)
 - Starts your dev server with PORT environment variable set
 - Configures HTTPS routing
-- Displays the URL: https://my-project.local
+- Displays the URL: https://my-project.lab
 
 The PORT environment variable is automatically injected, so your dev server should use it:
 
@@ -215,12 +217,12 @@ Output shows daemon status, configured routes, and running processes:
 Daemon Status: Running
 
 Routes:
-  my-project.local -> localhost:12345
-  another-app.local -> localhost:23456
+  my-project.lab -> localhost:12345
+  another-app.lab -> localhost:23456
 
 Running Processes:
-  PID 12345: /home/user/projects/my-project (https://my-project.local, port 12345)
-  PID 23456: /home/user/projects/another-app (https://another-app.local, port 23456)
+  PID 12345: /home/user/projects/my-project (https://my-project.lab, port 12345)
+  PID 23456: /home/user/projects/another-app (https://another-app.lab, port 23456)
 ```
 
 List all routes:
@@ -293,7 +295,7 @@ If the daemon won't start:
 
 ### Certificate trust warnings in browser
 
-Error: "Your connection is not private" or "NET::ERR_CERT_AUTHORITY_INVALID" when accessing https://my-project.local.
+Error: "Your connection is not private" or "NET::ERR_CERT_AUTHORITY_INVALID" when accessing https://my-project.lab.
 
 Solution:
 
@@ -415,7 +417,7 @@ faa npm start
 
 ### Connection refused when accessing URL
 
-You can access the daemon and routes are configured, but https://my-project.local shows "connection refused".
+You can access the daemon and routes are configured, but https://my-project.lab shows "connection refused".
 
 Solution:
 
@@ -437,31 +439,37 @@ Common causes:
 - Dev server not listening on PORT: make sure your server uses `process.env.PORT`
 - Dev server listening on wrong interface: ensure it binds to `0.0.0.0` (all interfaces) or `127.0.0.1`/`localhost` (loopback only), not a specific external IP
 
-### .local domain not resolving
+### .lab domain not resolving
 
-Error: `ping my-project.local` or `curl https://my-project.local` fails with "cannot resolve" or "unknown host".
+Error: `ping my-project.lab` or `curl https://my-project.lab` fails with "cannot resolve" or "unknown host".
 
 Solution:
 
-The `.local` domains used by faa are handled by Caddy's reverse proxy on port 443, not via DNS or mDNS. They work by:
-1. Your browser connects to `https://my-project.local` (port 443)
-2. Caddy intercepts the request and routes it to your dev server
-3. The domain doesn't need to exist in DNS or `/etc/hosts`
+The `.lab` domains used by faa must resolve to your local machine. Configure DNS or `/etc/hosts` so the hostname points to 127.0.0.1 (and ::1). Once DNS resolves, Caddy handles HTTPS routing on port 443.
+
+Example `/etc/hosts` entry:
+
+```bash
+127.0.0.1 my-project.lab
+::1 my-project.lab
+```
+
+If you prefer not to configure DNS, use a `.localhost` hostname instead.
 
 Important notes:
-- **Use in a browser**: Open `https://my-project.local` directly in your web browser
-- **Don't use ping**: The `ping` command doesn't understand HTTPS URLs and won't work with .local domains
-- **Use curl with -k**: If using curl for testing, use `curl -k https://my-project.local` (the `-k` flag accepts the self-signed certificate, or trust the CA certificate first)
+- **Use in a browser**: Open `https://my-project.lab` directly in your web browser
+- **Verify DNS**: `ping my-project.lab` should resolve to 127.0.0.1 or ::1
+- **Use curl with -k**: If using curl for testing, use `curl -k https://my-project.lab` (the `-k` flag accepts the self-signed certificate, or trust the CA certificate first)
 - **Daemon must be running**: Run `faa status` to verify the daemon is active and routes are configured
 - **CA must be trusted**: Run `faa setup` to install the CA certificate so browsers trust the HTTPS connection
 
 ### OCSP stapling warnings in logs
 
-Warning: `WARN tls stapling OCSP {"identifiers": ["my-project.local"]}` appears in daemon logs.
+Warning: `WARN tls stapling OCSP {"identifiers": ["my-project.lab"]}` appears in daemon logs.
 
 This warning is harmless and can be safely ignored. It appears because:
 - Caddy logs this message during certificate obtainment when checking for OCSP stapling options
-- Internal CA certificates (used for `.local` domains) don't have OCSP responders
+- Internal CA certificates (used for `.lab` and `.localhost` domains) don't have OCSP responders
 - OCSP stapling has been disabled in the configuration (`disable_ocsp_stapling: true`)
 - The warning is logged before the actual OCSP stapling is attempted/skipped
 - Your HTTPS connections work normally and no OCSP requests are actually made

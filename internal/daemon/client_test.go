@@ -100,7 +100,7 @@ func TestClientGetProcess(t *testing.T) {
 	if err := client.SetProcess(&SetProcessData{
 		ProjectRoot: "/tmp/test-project",
 		PID:         currentPID,
-		Host:        "test.local",
+		Host:        "test.lab",
 		Port:        3000,
 		StartedAt:   startedAt,
 	}); err != nil {
@@ -121,8 +121,8 @@ func TestClientGetProcess(t *testing.T) {
 	if proc.PID != currentPID {
 		t.Errorf("PID = %d, want %d", proc.PID, currentPID)
 	}
-	if proc.Host != "test.local" {
-		t.Errorf("Host = %s, want test.local", proc.Host)
+	if proc.Host != "test.lab" {
+		t.Errorf("Host = %s, want test.lab", proc.Host)
 	}
 	if proc.Port != 3000 {
 		t.Errorf("Port = %d, want 3000", proc.Port)
@@ -186,7 +186,7 @@ func TestClientUpsertRoute(t *testing.T) {
 	defer client.Close()
 
 	// Test UpsertRoute
-	if err := client.UpsertRoute("test.local", 3000); err != nil {
+	if err := client.UpsertRoute("test.lab", 3000); err != nil {
 		t.Fatalf("UpsertRoute() failed: %v", err)
 	}
 
@@ -198,7 +198,7 @@ func TestClientUpsertRoute(t *testing.T) {
 
 	found := false
 	for _, route := range routes {
-		if route.Host == "test.local" && route.Port == 3000 {
+		if route.Host == "test.lab" && route.Port == 3000 {
 			found = true
 			break
 		}
@@ -251,7 +251,7 @@ func TestClientGetRoute(t *testing.T) {
 	defer client.Close()
 
 	// Test GetRoute when route doesn't exist
-	port, err := client.GetRoute("nonexistent.local")
+	port, err := client.GetRoute("nonexistent.lab")
 	if err != nil {
 		t.Fatalf("GetRoute() failed: %v", err)
 	}
@@ -260,12 +260,12 @@ func TestClientGetRoute(t *testing.T) {
 	}
 
 	// Add a route
-	if err := client.UpsertRoute("test.local", 3000); err != nil {
+	if err := client.UpsertRoute("test.lab", 3000); err != nil {
 		t.Fatalf("UpsertRoute() failed: %v", err)
 	}
 
 	// Test GetRoute when route exists
-	port, err = client.GetRoute("test.local")
+	port, err = client.GetRoute("test.lab")
 	if err != nil {
 		t.Fatalf("GetRoute() failed: %v", err)
 	}
@@ -274,12 +274,12 @@ func TestClientGetRoute(t *testing.T) {
 	}
 
 	// Update the route
-	if err := client.UpsertRoute("test.local", 3001); err != nil {
+	if err := client.UpsertRoute("test.lab", 3001); err != nil {
 		t.Fatalf("UpsertRoute() update failed: %v", err)
 	}
 
 	// Test GetRoute after update
-	port, err = client.GetRoute("test.local")
+	port, err = client.GetRoute("test.lab")
 	if err != nil {
 		t.Fatalf("GetRoute() after update failed: %v", err)
 	}
@@ -331,7 +331,7 @@ func TestClientStatus(t *testing.T) {
 	defer client.Close()
 
 	// Add a route and process for testing
-	if err := client.UpsertRoute("test.local", 3000); err != nil {
+	if err := client.UpsertRoute("test.lab", 3000); err != nil {
 		t.Fatalf("UpsertRoute() failed: %v", err)
 	}
 
@@ -340,7 +340,7 @@ func TestClientStatus(t *testing.T) {
 	if err := client.SetProcess(&SetProcessData{
 		ProjectRoot: "/tmp/test-project",
 		PID:         currentPID,
-		Host:        "test.local",
+		Host:        "test.lab",
 		Port:        3000,
 		StartedAt:   startedAt,
 	}); err != nil {
@@ -359,7 +359,7 @@ func TestClientStatus(t *testing.T) {
 	}
 	foundRoute := false
 	for _, route := range status.Routes {
-		if route.Host == "test.local" && route.Port == 3000 {
+		if route.Host == "test.lab" && route.Port == 3000 {
 			foundRoute = true
 			break
 		}
@@ -427,10 +427,10 @@ func TestClientListRoutes(t *testing.T) {
 	defer client.Close()
 
 	// Add routes
-	if err := client.UpsertRoute("test1.local", 3001); err != nil {
+	if err := client.UpsertRoute("test1.lab", 3001); err != nil {
 		t.Fatalf("UpsertRoute() failed: %v", err)
 	}
-	if err := client.UpsertRoute("test2.local", 3002); err != nil {
+	if err := client.UpsertRoute("test2.lab", 3002); err != nil {
 		t.Fatalf("UpsertRoute() failed: %v", err)
 	}
 
@@ -448,18 +448,18 @@ func TestClientListRoutes(t *testing.T) {
 	foundTest1 := false
 	foundTest2 := false
 	for _, route := range routes {
-		if route.Host == "test1.local" && route.Port == 3001 {
+		if route.Host == "test1.lab" && route.Port == 3001 {
 			foundTest1 = true
 		}
-		if route.Host == "test2.local" && route.Port == 3002 {
+		if route.Host == "test2.lab" && route.Port == 3002 {
 			foundTest2 = true
 		}
 	}
 	if !foundTest1 {
-		t.Error("Route test1.local not found")
+		t.Error("Route test1.lab not found")
 	}
 	if !foundTest2 {
-		t.Error("Route test2.local not found")
+		t.Error("Route test2.lab not found")
 	}
 
 	// Shutdown daemon
