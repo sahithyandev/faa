@@ -30,6 +30,7 @@ func (d *Daemon) syncLabHosts(routes map[string]int) {
 
 func collectLabHosts(routes map[string]int) []string {
 	hosts := make([]string, 0, len(routes))
+	// Ports are irrelevant for host resolution; only hostnames matter here.
 	for host := range routes {
 		if !strings.HasSuffix(host, ".lab") {
 			continue
@@ -113,10 +114,7 @@ func replaceLabHostsBlock(content, block string) string {
 	end := strings.Index(content, labHostsEndMarker)
 	if start != -1 && end != -1 && end > start {
 		end += len(labHostsEndMarker)
-		suffix := content[end:]
-		if strings.HasPrefix(suffix, "\n") {
-			suffix = strings.TrimPrefix(suffix, "\n")
-		}
+		suffix := strings.TrimPrefix(content[end:], "\n")
 		content = content[:start] + suffix
 	}
 
