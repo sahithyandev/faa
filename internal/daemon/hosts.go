@@ -111,7 +111,7 @@ func renderLabHostsBlock(hosts []string) string {
 func replaceLabHostsBlock(content, block string) string {
 	start := strings.Index(content, labHostsStartMarker)
 	end := strings.Index(content, labHostsEndMarker)
-	if start != -1 && end != -1 && end >= start {
+	if start != -1 && end != -1 && end > start {
 		end += len(labHostsEndMarker)
 		suffix := content[end:]
 		if strings.HasPrefix(suffix, "\n") {
