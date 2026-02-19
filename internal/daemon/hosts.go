@@ -25,7 +25,7 @@ func (d *Daemon) syncLabHosts(routes map[string]int) {
 	hosts := collectLabHosts(routes)
 	hostsPath := hostsFilePath()
 	if err := updateLabHostsFile(hostsPath, hosts); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Failed to update %s with .lab domain entries. Manual hosts file configuration may be required: %v\n", hostsPath, err)
+		fmt.Fprintf(os.Stderr, "Warning: Failed to update %s with .lab domain entries. This operation may require elevated privileges. Manual hosts file configuration may be required: %v\n", hostsPath, err)
 	}
 }
 

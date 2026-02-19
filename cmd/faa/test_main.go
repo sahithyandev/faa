@@ -23,7 +23,12 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	code := m.Run()
-	_ = os.RemoveAll(tmpDir)
+	code := 1
+	func() {
+		defer func() {
+			_ = os.RemoveAll(tmpDir)
+		}()
+		code = m.Run()
+	}()
 	os.Exit(code)
 }
