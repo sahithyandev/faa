@@ -25,7 +25,7 @@ func (d *Daemon) syncLabHosts(routes map[string]int) {
 	hosts := collectLabHosts(routes)
 	hostsPath := hostsFilePath()
 	if err := updateLabHostsFile(hostsPath, hosts); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Failed to update %s with .lab domains (may require elevated privileges). .lab resolution may fail until hosts are configured: %v\n", hostsPath, err)
+		fmt.Fprintf(os.Stderr, "Warning: Failed to update %s with .lab domains (requires elevated privileges): %v\n", hostsPath, err)
 	}
 }
 
@@ -134,7 +134,7 @@ func replaceLabHostsBlock(content, block string) string {
 
 func writeHostsFileAtomic(path, content string, perm os.FileMode) error {
 	dir := filepath.Dir(path)
-	tmpFile, err := os.CreateTemp(dir, ".faa-hosts-tmp-")
+	tmpFile, err := os.CreateTemp(dir, "faa-hosts-tmp-")
 	if err != nil {
 		return writeHostsFile(path, content, perm)
 	}
