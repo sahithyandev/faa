@@ -13,7 +13,7 @@ func TestMain(m *testing.M) {
 	}
 	hostsPath := filepath.Join(tmpDir, "hosts")
 	_ = os.WriteFile(hostsPath, []byte("127.0.0.1 localhost\n"), 0644)
-	_ = os.Setenv(labHostsPathEnv, hostsPath)
+	_ = os.Setenv("FAA_HOSTS_PATH", hostsPath)
 
 	code := m.Run()
 	_ = os.RemoveAll(tmpDir)
