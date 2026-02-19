@@ -138,6 +138,8 @@ func (d *Daemon) loadAndApplyRoutes() error {
 		d.tryExportCA()
 	}
 
+	d.syncLabHosts(routes)
+
 	return nil
 }
 
@@ -365,6 +367,8 @@ func (d *Daemon) handleUpsertRoute(req *Request) *Response {
 		// Export CA after applying routes (in background to not block the response)
 		go d.tryExportCA()
 	}
+
+	d.syncLabHosts(routes)
 
 	resp, _ := NewSuccessResponse(nil)
 	return resp
