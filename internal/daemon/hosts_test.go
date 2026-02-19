@@ -108,3 +108,40 @@ func TestUpdateLabHostsFileRemovesBlockWhenEmpty(t *testing.T) {
 		t.Errorf("expected app.lab entries to be removed")
 	}
 }
+
+func TestDaemonSyncLabHosts(t *testing.T) {
+	tmpDir := t.TempDir()
+	hostsPath := filepath.Join(tmpDir, "hosts")
+	if err := os.WriteFile(hostsPath, []byte("127.0.0.1 localhost\n"), 0644); err != nil {
+		t.Fatalf("failed to write hosts file: %v", err)
+	}
+
+	t.Setenv("FAA_HOSTS_PATH", hostsPath)
+	d := &Daemon{}
+
+	d.syncLabHosts(map[string]int{
+		"app.lab":       3000,
+		"app.localhost": 3001,
+	})
+
+	content, err := os.ReadFile(hostsPath)
+	if err != nil {
+		t.Fatalf("failed to read hosts file: %v", err)
+	}
+	if !strings.Contains(string(content), "127.0.0.1 app.lab") {
+		t.Errorf("expected app.lab to be synced into hosts file")
+	}
+	if strings.Contains(string(content), "app.localhost") {
+		t.Errorf("did not expect .localhost entries in hosts file")
+	}
+
+	d.syncLabHosts(map[string]int{})
+
+	content, err = os.ReadFile(hostsPath)
+	if err != nil {
+		t.Fatalf("failed to read hosts file after cleanup: %v", err)
+	}
+	if strings.Contains(string(content), labHostsStartMarker) {
+		t.Errorf("expected hosts block to be removed when no .lab routes remain")
+	}
+}

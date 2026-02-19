@@ -114,7 +114,7 @@ func replaceLabHostsBlock(content, block string) string {
 	end := strings.Index(content, labHostsEndMarker)
 	if start != -1 && end != -1 && end > start {
 		end += len(labHostsEndMarker)
-		suffix := strings.TrimPrefix(content[end:], "\n")
+		suffix := strings.TrimLeft(content[end:], "\n")
 		content = content[:start] + suffix
 	}
 
