@@ -75,27 +75,27 @@ func (r *Registry) processesPath() string {
 }
 
 // normalizeHost ensures a hostname has a local development suffix.
-// If the host already ends with .local or .localhost, it returns it unchanged.
-// Otherwise, it appends .localhost to the host.
+// If the host already ends with .lab or .localhost, it returns it unchanged.
+// Otherwise, it appends .lab to the host.
 // Empty hostnames are returned unchanged to avoid creating invalid hostnames.
 func normalizeHost(host string) string {
 	if host == "" {
 		return host
 	}
-	if strings.HasSuffix(host, ".local") || strings.HasSuffix(host, ".localhost") {
+	if strings.HasSuffix(host, ".lab") || strings.HasSuffix(host, ".localhost") {
 		return host
 	}
-	return host + ".localhost"
+	return host + ".lab"
 }
 
 // alternateLocalHost returns the equivalent hostname with the other supported
-// local suffix (.local <-> .localhost). Returns empty string if no alternate.
+// local suffix (.lab <-> .localhost). Returns empty string if no alternate.
 func alternateLocalHost(host string) string {
 	switch {
 	case strings.HasSuffix(host, ".localhost"):
-		return strings.TrimSuffix(host, ".localhost") + ".local"
-	case strings.HasSuffix(host, ".local"):
-		return strings.TrimSuffix(host, ".local") + ".localhost"
+		return strings.TrimSuffix(host, ".localhost") + ".lab"
+	case strings.HasSuffix(host, ".lab"):
+		return strings.TrimSuffix(host, ".lab") + ".localhost"
 	default:
 		return ""
 	}

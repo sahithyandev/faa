@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Development server manager with stable HTTPS URLs
 - Background daemon for managing development servers
 - Stable port assignment based on project name
-- HTTPS access via .local domains
+- HTTPS access via .lab and .localhost domains
 - Embedded Caddy reverse proxy with automatic certificate generation
 - Support for Node.js projects with package.json
 - Commands: setup, daemon, run, status, stop, routes, ca-path, clean

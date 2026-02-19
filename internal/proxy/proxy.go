@@ -13,8 +13,8 @@
 //
 //	// Set up routes
 //	routes := map[string]int{
-//	    "app.local": 3000,
-//	    "api.local": 3001,
+//	    "app.lab": 3000,
+//	    "api.lab": 3001,
 //	}
 //	p.ApplyRoutes(routes)
 //

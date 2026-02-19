@@ -316,7 +316,7 @@ func TestDaemonRegistryOperations(t *testing.T) {
 
 	// Test UpsertRoute
 	upsertReq, err := NewRequest(MessageTypeUpsertRoute, &UpsertRouteData{
-		Host: "test.local",
+		Host: "test.lab",
 		Port: 3000,
 	})
 	if err != nil {
@@ -365,8 +365,8 @@ func TestDaemonRegistryOperations(t *testing.T) {
 		t.Errorf("Expected 1 route, got %d", len(routes))
 	}
 
-	if len(routes) > 0 && (routes[0].Host != "test.local" || routes[0].Port != 3000) {
-		t.Errorf("Route = %+v, want {Host:test.local Port:3000}", routes[0])
+	if len(routes) > 0 && (routes[0].Host != "test.lab" || routes[0].Port != 3000) {
+		t.Errorf("Route = %+v, want {Host:test.lab Port:3000}", routes[0])
 	}
 
 	// Shutdown daemon
@@ -395,12 +395,12 @@ func TestDaemonStatusRequest(t *testing.T) {
 	}
 
 	// Add some test data to registry
-	if err := registry.UpsertRoute("app.local", 3000); err != nil {
+	if err := registry.UpsertRoute("app.lab", 3000); err != nil {
 		t.Fatalf("Failed to add test route: %v", err)
 	}
 
 	currentPID := os.Getpid()
-	if err := registry.SetProcess("/test/project", currentPID, "app.local", 3000, time.Now()); err != nil {
+	if err := registry.SetProcess("/test/project", currentPID, "app.lab", 3000, time.Now()); err != nil {
 		t.Fatalf("Failed to add test process: %v", err)
 	}
 
@@ -481,10 +481,10 @@ func TestDaemonProxyIntegration(t *testing.T) {
 	}
 
 	// Add some routes to the registry before starting daemon
-	if err := registry.UpsertRoute("test1.local", 3000); err != nil {
+	if err := registry.UpsertRoute("test1.lab", 3000); err != nil {
 		t.Fatalf("Failed to add initial route: %v", err)
 	}
-	if err := registry.UpsertRoute("test2.local", 3001); err != nil {
+	if err := registry.UpsertRoute("test2.lab", 3001); err != nil {
 		t.Fatalf("Failed to add initial route: %v", err)
 	}
 
@@ -511,7 +511,7 @@ func TestDaemonProxyIntegration(t *testing.T) {
 
 	// Test upsert_route with proxy
 	req, err := NewRequest(MessageTypeUpsertRoute, &UpsertRouteData{
-		Host: "test3.local",
+		Host: "test3.lab",
 		Port: 3002,
 	})
 	if err != nil {
@@ -566,10 +566,10 @@ func TestDaemonStartLoadRoutes(t *testing.T) {
 	}
 
 	// Add some routes that should be loaded on startup
-	if err := registry.UpsertRoute("preexisting.local", 4000); err != nil {
+	if err := registry.UpsertRoute("preexisting.lab", 4000); err != nil {
 		t.Fatalf("Failed to add route: %v", err)
 	}
-	if err := registry.UpsertRoute("another.local", 4001); err != nil {
+	if err := registry.UpsertRoute("another.lab", 4001); err != nil {
 		t.Fatalf("Failed to add route: %v", err)
 	}
 
@@ -622,7 +622,7 @@ func TestDaemonGetRoute(t *testing.T) {
 	}
 
 	// Add a route before daemon starts
-	if err := registry.UpsertRoute("existing.local", 5000); err != nil {
+	if err := registry.UpsertRoute("existing.lab", 5000); err != nil {
 		t.Fatalf("Failed to add route: %v", err)
 	}
 
@@ -648,7 +648,7 @@ func TestDaemonGetRoute(t *testing.T) {
 	defer conn.Close()
 
 	// Test GetRoute for existing route
-	req, err := NewRequest(MessageTypeGetRoute, &GetRouteData{Host: "existing.local"})
+	req, err := NewRequest(MessageTypeGetRoute, &GetRouteData{Host: "existing.lab"})
 	if err != nil {
 		t.Fatalf("NewRequest() failed: %v", err)
 	}
@@ -677,7 +677,7 @@ func TestDaemonGetRoute(t *testing.T) {
 	}
 
 	// Test GetRoute for non-existent route
-	req2, err := NewRequest(MessageTypeGetRoute, &GetRouteData{Host: "nonexistent.local"})
+	req2, err := NewRequest(MessageTypeGetRoute, &GetRouteData{Host: "nonexistent.lab"})
 	if err != nil {
 		t.Fatalf("NewRequest() failed: %v", err)
 	}
