@@ -136,7 +136,7 @@ func writeHostsFileAtomic(path, content string, perm os.FileMode) error {
 	dir := filepath.Dir(path)
 	tmpFile, err := os.CreateTemp(dir, "faa-hosts-")
 	if err != nil {
-		return fmt.Errorf("failed to create temp hosts file: %w", err)
+		return writeHostsFile(path, content, perm)
 	}
 	defer os.Remove(tmpFile.Name())
 
@@ -158,5 +158,15 @@ func writeHostsFileAtomic(path, content string, perm os.FileMode) error {
 		return fmt.Errorf("failed to replace hosts file: %w", err)
 	}
 
+	return nil
+}
+
+func writeHostsFile(path, content string, perm os.FileMode) error {
+	if err := os.WriteFile(path, []byte(content), perm); err != nil {
+		return fmt.Errorf("failed to write hosts file: %w", err)
+	}
+	if err := os.Chmod(path, perm); err != nil {
+		return fmt.Errorf("failed to set hosts file permissions: %w", err)
+	}
 	return nil
 }
