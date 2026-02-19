@@ -138,6 +138,7 @@ func (d *Daemon) loadAndApplyRoutes() error {
 		d.tryExportCA()
 	}
 
+	// Sync .lab routes into /etc/hosts for automatic resolution.
 	d.syncLabHosts(routes)
 
 	return nil
@@ -368,6 +369,7 @@ func (d *Daemon) handleUpsertRoute(req *Request) *Response {
 		go d.tryExportCA()
 	}
 
+	// Sync .lab routes into /etc/hosts for automatic resolution.
 	d.syncLabHosts(routes)
 
 	resp, _ := NewSuccessResponse(nil)
