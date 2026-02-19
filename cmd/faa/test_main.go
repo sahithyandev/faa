@@ -23,12 +23,12 @@ func TestMain(m *testing.M) {
 		os.Exit(1)
 	}
 
-	code := 1
-	func() {
-		defer func() {
-			_ = os.RemoveAll(tmpDir)
-		}()
-		code = m.Run()
+	os.Exit(runWithCleanup(m, tmpDir))
+}
+
+func runWithCleanup(m *testing.M, tmpDir string) int {
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
 	}()
-	os.Exit(code)
+	return m.Run()
 }
