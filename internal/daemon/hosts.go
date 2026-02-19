@@ -23,8 +23,9 @@ func hostsFilePath() string {
 
 func (d *Daemon) syncLabHosts(routes map[string]int) {
 	hosts := collectLabHosts(routes)
-	if err := updateLabHostsFile(hostsFilePath(), hosts); err != nil {
-		fmt.Fprintf(os.Stderr, "Warning: Failed to update /etc/hosts for .lab domains: %v\n", err)
+	hostsPath := hostsFilePath()
+	if err := updateLabHostsFile(hostsPath, hosts); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: Failed to update %s for .lab domains: %v\n", hostsPath, err)
 	}
 }
 
@@ -114,7 +115,10 @@ func replaceLabHostsBlock(content, block string) string {
 	end := strings.Index(content, labHostsEndMarker)
 	if start != -1 && end != -1 && end > start {
 		end += len(labHostsEndMarker)
-		suffix := strings.TrimLeft(content[end:], "\n")
+		suffix := content[end:]
+		if strings.HasPrefix(suffix, "\n") {
+			suffix = strings.TrimPrefix(suffix, "\n")
+		}
 		content = content[:start] + suffix
 	}
 

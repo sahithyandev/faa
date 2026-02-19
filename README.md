@@ -445,7 +445,7 @@ Error: `ping my-project.lab` or `curl https://my-project.lab` fails with "cannot
 
 Solution:
 
-The `.lab` domains used by faa must resolve to your local machine. faa will attempt to keep `/etc/hosts` in sync with your `.lab` routes so they point to 127.0.0.1 (and ::1). If that update fails, configure DNS or `/etc/hosts` manually. Once DNS resolves, Caddy handles HTTPS routing on port 443.
+The `.lab` domains used by faa must resolve to your local machine. FAA will attempt to keep `/etc/hosts` in sync with your `.lab` routes so they point to 127.0.0.1 (and ::1). If that update fails, configure DNS or `/etc/hosts` manually. Once DNS resolves, Caddy handles HTTPS routing on port 443.
 
 Example `/etc/hosts` entry:
 
