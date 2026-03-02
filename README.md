@@ -110,12 +110,14 @@ The setup command will:
 After setup, start the daemon manually:
 
 ```bash
-# Start daemon in background
-faa daemon &
+# Start daemon with sudo (required for automatic /etc/hosts management)
+sudo faa daemon &
 
 # Or run in a separate terminal window
-faa daemon
+sudo faa daemon
 ```
+
+**Note**: The daemon requires sudo to automatically manage `/etc/hosts` entries for `.local` domains. If you run without sudo, you'll need to manually add DNS entries (see troubleshooting section).
 
 To stop the daemon:
 
@@ -258,17 +260,18 @@ Error: "bind: permission denied" when starting daemon.
 Solution:
 
 ```bash
-# Run setup to configure port binding
+# Run setup to configure port binding capability
 faa setup
 
 # Or manually grant capability
 sudo setcap cap_net_bind_service=+ep $(which faa)
 ```
 
-If this doesn't work:
+**Note**: On Linux, running the daemon with sudo is the recommended approach as it also enables automatic `/etc/hosts` management for `.local` domains. The setcap method only handles port binding.
+
+If port 443 is in use:
 - Check if another service is using port 443: `sudo lsof -i :443`
 - Stop conflicting services: `sudo systemctl stop apache2` or `sudo systemctl stop nginx`
-- As a last resort, run daemon with sudo: `sudo faa daemon` (not recommended)
 
 ### Cannot bind to port 443 (macOS)
 
@@ -443,15 +446,27 @@ Error: `ping my-project.local` or `curl https://my-project.local` fails with "ca
 
 Solution:
 
-The `.local` domains used by faa are handled by Caddy's reverse proxy on port 443, not via DNS or mDNS. They work by:
-1. Your browser connects to `https://my-project.local` (port 443)
-2. Caddy intercepts the request and routes it to your dev server
-3. The domain doesn't need to exist in DNS or `/etc/hosts`
+On Linux, faa automatically manages `/etc/hosts` entries to ensure `.local` domains resolve to `127.0.0.1`. The daemon adds entries when routes are created and removes them when routes are cleared.
 
-Important notes:
+**Important**: The daemon needs write access to `/etc/hosts`. If you see warnings about failing to update `/etc/hosts`, run the daemon with elevated privileges:
+
+```bash
+sudo faa daemon &
+```
+
+If you prefer not to run the daemon with sudo, you can manually add entries:
+
+```bash
+# Add this line to /etc/hosts for each project
+sudo sh -c 'echo "127.0.0.1 my-project.local" >> /etc/hosts'
+```
+
+On macOS, DNS resolution for `.local` domains is handled differently and doesn't require `/etc/hosts` entries.
+
+General notes:
 - **Use in a browser**: Open `https://my-project.local` directly in your web browser
-- **Don't use ping**: The `ping` command doesn't understand HTTPS URLs and won't work with .local domains
-- **Use curl with -k**: If using curl for testing, use `curl -k https://my-project.local` (the `-k` flag accepts the self-signed certificate, or trust the CA certificate first)
+- **ping command limitations**: The `ping` command uses ICMP (network layer) and doesn't work with HTTPS endpoints which operate at the application layer. Use `curl` instead for testing HTTPS endpoints.
+- **Use curl**: After DNS is configured, use `curl https://my-project.local` (trust the CA certificate first with `faa setup`)
 - **Daemon must be running**: Run `faa status` to verify the daemon is active and routes are configured
 - **CA must be trusted**: Run `faa setup` to install the CA certificate so browsers trust the HTTPS connection
 

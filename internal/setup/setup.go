@@ -41,7 +41,19 @@ func runLinuxSetup() error {
 		return fmt.Errorf("CA trust setup failed: %w", err)
 	}
 
+	// Inform about /etc/hosts management
 	fmt.Println()
+	fmt.Println("DNS Resolution for .local domains:")
+	fmt.Println("  The faa daemon automatically manages /etc/hosts entries for .local domains.")
+	fmt.Println("  This allows .local domains to resolve to 127.0.0.1 on Linux systems.")
+	fmt.Println()
+	fmt.Println("  Note: The daemon needs write access to /etc/hosts to manage these entries.")
+	fmt.Println("  If the daemon cannot write to /etc/hosts, you will see warnings in the logs.")
+	fmt.Println("  In that case, you can either:")
+	fmt.Println("    1. Run the daemon with elevated privileges (sudo faa daemon)")
+	fmt.Println("    2. Manually add entries to /etc/hosts as they are created")
+	fmt.Println()
+
 	fmt.Println("✓ Setup complete!")
 	return nil
 }
